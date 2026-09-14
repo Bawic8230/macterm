@@ -48,9 +48,61 @@ final class MactermConfig {
         let body = Self.overridesBody(
             windowOpacity: Preferences.shared.windowOpacity,
             userConfigText: userGhosttyConfigText(),
-            shimDirectory: Self.sshShimDirectory()
+            shimDirectory: Self.sshShimDirectory(),
+            experiments: .init(
+                smoothScrolling: Preferences.shared.smoothScrolling,
+                smoothCursor: Preferences.shared.smoothCursor,
+                trail: Preferences.shared.cursorTrail,
+                shaderDirectory: Self.shaderDirectory()
+            )
         )
         write(Data(body.utf8), to: overridesURL)
+    }
+
+    /// The Settings → Experimental toggles, each a ghostty-side switch the
+    /// overrides file flips. All default off, so a user who never opens the
+    /// pane gets exactly the user-config behavior.
+    ///
+    /// - Smooth scrolling is the fork's `smooth-scroll` key: libghostty
+    ///   already accumulates precise trackpad deltas in pixels, and with the
+    ///   key on it renders the sub-row remainder. Macterm forwards every
+    ///   wheel event untouched (#393), so the gate must live on that side.
+    /// - Smooth cursor and cursor trail are bundled custom shaders
+    ///   (`Resources/shaders/`) appended to the user's own `custom-shader`
+    ///   list — the key is repeatable, and the overrides load last, so the
+    ///   user's shaders stay and run first. The trail is listed before the
+    ///   glide so it renders beneath the drawn cursor. The smooth cursor also
+    ///   forces `cursor-opacity = 0`: the shader draws the focused cursor
+    ///   itself, and ghostty's would otherwise jump ahead of it. libghostty
+    ///   applies that key only while focused, so unfocused panes keep the
+    ///   native hollow cursor. It is the one user-visible ghostty key a
+    ///   Macterm setting overrides, which is why the toggle defaults to off.
+    struct Experiments: Equatable {
+        var smoothScrolling = false
+        var smoothCursor = false
+        var trail = false
+        /// Where the bundled shaders live, or nil when the bundle lacks them
+        /// (a broken or partial build) — then no shader line is emitted
+        /// rather than a `custom-shader` path libghostty would fail to load.
+        var shaderDirectory: String?
+
+        static let none = Experiments()
+
+        var overrideLines: [String] {
+            var lines: [String] = []
+            if smoothScrolling {
+                lines.append("smooth-scroll = true")
+            }
+            guard let shaderDirectory else { return lines }
+            if trail {
+                lines.append("custom-shader = \(shaderDirectory)/cursor_trail.glsl")
+            }
+            if smoothCursor {
+                lines.append("custom-shader = \(shaderDirectory)/cursor_glide.glsl")
+                lines.append("cursor-opacity = 0")
+            }
+            return lines
+        }
     }
 
     /// The full text of `macterm-defaults.conf`, the first config layer. The
@@ -87,7 +139,8 @@ final class MactermConfig {
     static func overridesBody(
         windowOpacity: Double,
         userConfigText: String?,
-        shimDirectory: String?
+        shimDirectory: String?,
+        experiments: Experiments = .none
     ) -> String {
         var overrides = [
             // Macterm composites window translucency at the AppKit level —
@@ -143,7 +196,22 @@ final class MactermConfig {
             overrides.append("shell-integration-features = \(value)")
         }
 
+        overrides.append(contentsOf: experiments.overrideLines)
+
         return overrides.joined(separator: "\n") + "\n"
+    }
+
+    /// The bundle directory holding the cursor-effect shaders
+    /// (`Macterm/Resources/shaders`, a folder reference in project.yml), or
+    /// nil when either file is missing so `Experiments` emits no shader line.
+    static func shaderDirectory() -> String? {
+        guard let dir = Bundle.main.resourceURL?
+            .appendingPathComponent("shaders", isDirectory: true)
+        else { return nil }
+        let present = ["cursor_glide.glsl", "cursor_trail.glsl"].allSatisfy {
+            FileManager.default.isReadableFile(atPath: dir.appendingPathComponent($0).path)
+        }
+        return present ? dir.path : nil
     }
 
     /// Write a wrapper-config file, logging on failure. These writes are

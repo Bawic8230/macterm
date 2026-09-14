@@ -241,6 +241,42 @@ final class Preferences {
         }
     }
 
+    // MARK: - Experimental (Settings → Experimental; all default off)
+
+    /// Pixel-precise trackpad scrolling through scrollback. Written to the
+    /// overrides as the fork's `smooth-scroll` key (`MactermConfig
+    /// .Experiments`): libghostty already accumulates precise deltas in
+    /// pixels, and with the key on it renders the sub-row remainder instead
+    /// of dropping it. Every wheel event reaches libghostty untouched (#393),
+    /// so the gate has to live on that side.
+    var smoothScrolling: Bool {
+        didSet {
+            defaults.set(smoothScrolling, forKey: Keys.smoothScrolling)
+            notifyConfigChanged()
+        }
+    }
+
+    /// The cursor glides between cells instead of jumping. Implemented as a
+    /// bundled ghostty custom shader (`Resources/shaders/cursor_glide.glsl`)
+    /// that Macterm appends to the config through the overrides file, along
+    /// with `cursor-opacity = 0` so the shader can be the focused cursor.
+    /// See `MactermConfig.Experiments`.
+    var smoothCursor: Bool {
+        didSet {
+            defaults.set(smoothCursor, forKey: Keys.smoothCursor)
+            notifyConfigChanged()
+        }
+    }
+
+    /// A fading streak follows the cursor across larger moves. The bundled
+    /// `cursor_trail.glsl`, injected the same way as `smoothCursor`.
+    var cursorTrail: Bool {
+        didSet {
+            defaults.set(cursorTrail, forKey: Keys.cursorTrail)
+            notifyConfigChanged()
+        }
+    }
+
     /// Presentation used by `peekSidebarWhenHidden`. The pinned sidebar is
     /// always the native split-view column.
     var sidebarPeekStyle: SidebarPeekStyle {
@@ -764,6 +800,9 @@ final class Preferences {
     private init(defaults: UserDefaults) {
         self.defaults = defaults
         autoTilingEnabled = defaults.bool(forKey: Keys.autoTiling)
+        smoothScrolling = defaults.object(forKey: Keys.smoothScrolling) as? Bool ?? false
+        smoothCursor = defaults.object(forKey: Keys.smoothCursor) as? Bool ?? false
+        cursorTrail = defaults.object(forKey: Keys.cursorTrail) as? Bool ?? false
         sidebarPeekStyle = (defaults.string(forKey: Keys.sidebarPeekStyle))
             .flatMap(SidebarPeekStyle.init(rawValue:)) ?? .resizeTerminal
         windowOpacity = (defaults.object(forKey: Keys.windowOpacity) as? Double) ?? 1.0
@@ -928,6 +967,9 @@ final class Preferences {
 
     enum Keys {
         static let autoTiling = "macterm.autoTiling.enabled"
+        static let smoothScrolling = "macterm.terminal.smoothScrolling"
+        static let smoothCursor = "macterm.terminal.smoothCursor"
+        static let cursorTrail = "macterm.terminal.cursorTrail"
         static let sidebarPeekStyle = "macterm.sidebar.presentation"
         static let windowOpacity = "macterm.window.opacity"
         static let windowBlurRadius = "macterm.window.blurRadius"
