@@ -8,6 +8,27 @@ import Testing
 /// that only show up visually.
 @MainActor
 struct MactermConfigTests {
+    // MARK: - defaultsBody: Macterm's defaults for the ghostty keys it applies
+
+    /// Ghostty starts a new tab in the focused surface's cwd; Macterm starts it
+    /// at the project root. That is a defaults-layer line, not a `Preferences`
+    /// fallback, so the user's config overrides it the ordinary way.
+    @Test
+    func new_tabs_start_at_the_project_root_by_default() {
+        #expect(MactermConfig.defaultsBody.contains("tab-inherit-working-directory = false\n"))
+        // Splits keep ghostty's default (inherit), so nothing is written.
+        #expect(!MactermConfig.defaultsBody.contains("split-inherit-working-directory"))
+    }
+
+    /// Scrolling is libghostty's on every path (the #102 accumulator is gone),
+    /// so `mouse-scroll-multiplier` keeps ghostty's own default — and
+    /// `macos-shortcuts` defaults to `ask` in both. A pin would be noise.
+    @Test
+    func keys_that_share_ghosttys_default_are_not_pinned() {
+        #expect(!MactermConfig.defaultsBody.contains("mouse-scroll-multiplier"))
+        #expect(!MactermConfig.defaultsBody.contains("macos-shortcuts"))
+    }
+
     // MARK: - overridesBody: the translucency contract
 
     @Test
