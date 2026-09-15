@@ -280,6 +280,14 @@ Auto-updates via Sparkle (`SUFeedURL` = `https://macterm.thdxg.dev/appcast.xml`,
 - **The quick terminal's tab persists too** (`WorkspacesFile.quickTerminal`, an optional section with deliberately no schema bump — see its doc comment). `AppState` adopts `QuickTerminalService.shared.splitState` once (`adoptQuickTerminal`, injectable at init for tests), snapshots it in every `saveWorkspaces`, hands the tab back in `restoreSelection` before the orphan sweep, and counts its sessions as reaper claims — the panes attach only when the panel is first shown, so until then they sit at zero clients. `QuickTerminalSplitState` reports its own splits/closes through `onStructureChange` since it owns no `AppState`; a restore is refused once the panel has been shown this run. Consequences: quit kills nothing and confirms nothing while zmx is bundled (the confirmation returns, quick terminal included, only when zmx is unavailable), and closing a pane in the panel is still the one permanent kill.
 - Settings → Projects duplicates the layout/unload/remove alerts; keep them gated on `AppState.DialogHost` so a confirmation raised from the palette doesn't also open Settings.
 
+### Adding a new feature
+
+**A feature request starts with "does ghostty already do this?", and the answer goes to the user before any code is written.** libghostty's config surface is large, and a Macterm-side implementation of something a ghostty key already expresses is a second, disagreeing answer the user has to discover — #393 deleted the scroll-speed slider and Macterm's entire wheel path once `mouse-scroll-multiplier` was actually tried, along with two Settings controls that `tab-inherit-working-directory` and `macos-shortcuts` had answered all along. Read ghostty's config reference and `ghostty.h` first, then:
+
+- **A ghostty key covers it** → read the key live off the loaded config (see the config pipeline) and add **no Settings UI**. Where Macterm's default must differ from ghostty's, that departure is a line in `MactermConfig.defaultsBody`, never a `Preferences` fallback. Naming the key may be the whole answer — say so instead of building.
+- **Ghostty can express it as a custom shader or a fork patch** → prefer that to a Swift reimplementation, and land it in Settings → Experimental first.
+- **It is Macterm's own concept** (projects, per-project tabs, the sidebar, layouts, windows, the CLI, sessions) → build it here and follow *Adding a new setting*.
+
 ### Adding a new action
 
 1. Add an `AppCommand` case (Title Case title, category, linked `HotkeyAction` if rebindable). The palette, menus and Settings pick it up.
