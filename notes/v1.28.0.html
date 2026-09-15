@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Macterm 1.28.0 release notes</title>
+  <style>
+    body { font: 13px -apple-system, system-ui, sans-serif; color: #1d1d1f; padding: 16px; margin: 0; }
+    @media (prefers-color-scheme: dark) { body { color: #f5f5f7; background: transparent; } a { color: #6cb4ff; } }
+    h1, h2, h3 { margin-top: 0.6em; margin-bottom: 0.3em; }
+    h1 { font-size: 1.3em; } h2 { font-size: 1.15em; } h3 { font-size: 1em; }
+    p, ul, ol { margin: 0.4em 0; }
+    ul, ol { padding-left: 1.4em; }
+    code { background: rgba(127, 127, 127, 0.15); padding: 0 4px; border-radius: 3px; font: 12px ui-monospace, monospace; }
+    pre { background: rgba(127, 127, 127, 0.12); padding: 8px; border-radius: 4px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<h2>What's New</h2>
+<ul>
+<li>A new Settings → Experimental pane collects features that are still settling in, each off by default: smooth trackpad scrolling through scrollback, a cursor that glides between positions, and a fading cursor trail. (#394)</li>
+<li>Experimental also gains Animate splits, which slides a new pane in from its own edge of the split while its neighbor makes room, and slides a closing pane back out. (#396)</li>
+<li>Quick terminal panes now survive a quit: their sessions persist and the panel reopens onto them after a relaunch. (#392)</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+<li>Quitting with a command running in the quick terminal no longer asks for confirmation. (#392)</li>
+<li>Trackpad and wheel scrolling now follow Ghostty's own conversion, so <code class="notranslate">mouse-scroll-multiplier</code> tunes Macterm exactly as it tunes Ghostty. (#393)</li>
+<li>A project's layout file now takes effect only through Apply Layout, instead of being applied silently the first time the project is opened. (#391)</li>
+</ul>
+<h2>Notes</h2>
+<ul>
+<li>Scroll speed, New tab directory, New split directory and Allow Shortcuts to control Macterm have been removed from Settings. Macterm now reads <code class="notranslate">mouse-scroll-multiplier</code>, <code class="notranslate">tab-inherit-working-directory</code>, <code class="notranslate">split-inherit-working-directory</code> and <code class="notranslate">macos-shortcuts</code> from your Ghostty config, and any value you had set in Settings is dropped.</li>
+<li>Mouse wheel scrollback now moves three rows per notch, Ghostty's default. Set <code class="notranslate">mouse-scroll-multiplier = discrete:1</code> for the previous one-row feel.</li>
+</ul>
+<p>Thanks to <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/thdxg/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/thdxg">@thdxg</a> for this release.</p>
+</body>
+</html>
