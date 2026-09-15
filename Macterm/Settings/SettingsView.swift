@@ -1802,11 +1802,6 @@ private struct ExperimentalSettings: View {
                     .onChange(of: animatedSplits) { _, v in
                         Preferences.shared.animatedSplits = v
                     }
-                Text(
-                    "New panes slide in while their neighbors make room, closing panes slide out, "
-                        + "and zooming grows the pane over the layout. Honors Reduce Motion."
-                )
-                .settingsCaption()
             }
         }
         .formStyle(.grouped)
