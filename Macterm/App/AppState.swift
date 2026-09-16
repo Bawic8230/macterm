@@ -2976,6 +2976,7 @@ final class AppState {
     func splitPane(
         _ paneID: UUID,
         direction: SplitDirection,
+        position: SplitPosition = .second,
         projectID: UUID,
         projectDirectory: String,
         command: String? = nil
@@ -2995,6 +2996,7 @@ final class AppState {
         return splitPane(
             paneID,
             direction: direction,
+            position: position,
             projectID: projectID,
             command: command,
             newPaneWorkingDirectory: newPaneDirectory
@@ -3009,6 +3011,7 @@ final class AppState {
     func splitPane(
         _ paneID: UUID,
         direction: SplitDirection,
+        position: SplitPosition = .second,
         projectID: UUID,
         command: String? = nil,
         newPaneWorkingDirectory: String? = nil
@@ -3019,6 +3022,7 @@ final class AppState {
         let newID = tab.split(
             paneID: paneID,
             direction: direction,
+            position: position,
             command: command,
             newPaneWorkingDirectory: newPaneWorkingDirectory
         )
@@ -3037,13 +3041,14 @@ final class AppState {
     func mirrorPane(
         _ paneID: UUID,
         direction: SplitDirection,
+        position: SplitPosition = .second,
         projectID: UUID
     ) -> UUID? {
         guard let ws = workspaces[projectID],
               let tab = ws.tabs.first(where: { $0.splitRoot.findPane(id: paneID) != nil })
         else { return nil }
         guard let source = tab.splitRoot.findPane(id: paneID),
-              let newID = tab.mirror(paneID: paneID, direction: direction)
+              let newID = tab.mirror(paneID: paneID, direction: direction, position: position)
         else { return nil }
         // The source stays leader: zmx's handleInit sets a leader only when
         // there is none, so a second client attaching leaves the pty size
