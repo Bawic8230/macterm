@@ -1120,17 +1120,6 @@
       <enclosure url="https://github.com/thdxg/macterm/releases/download/v1.28.0/Macterm-1.28.0.dmg" type="application/octet-stream" sparkle:edSignature="T/4U4x5OPbPJo0UHOd8RlQAYkXcqfGU5tKfU+eQMvO6hmrr72oNSsfeb5KYUMfdCibxWsPYug4zAtOLuyzd9Cw==" length="23128863" />
     </item>
     <item>
-      <title>Macterm 1.28.0-tip.4 (tip)</title>
-      <pubDate>Wed, 16 Sep 2026 14:42:15 +0000</pubDate>
-      <sparkle:channel>tip</sparkle:channel>
-      <sparkle:version>1.28.0.9999.4</sparkle:version>
-      <sparkle:shortVersionString>1.28.0-tip.4</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://macterm.thdxg.dev/notes/tip.html</sparkle:releaseNotesLink>
-      <link>https://github.com/thdxg/macterm/releases/tag/tip</link>
-      <enclosure url="https://github.com/thdxg/macterm/releases/download/tip/Macterm-1.28.0-tip.4.dmg" type="application/octet-stream" sparkle:edSignature="/iufnvpT8566j7REVEteB0CrpvRsQrTHVG+CQvTQ2rfIptiyQtSYjDFmtpaW1od4Qc6OZXqkuazdc3SipFbdAw==" length="23137022" />
-    </item>
-    <item>
       <title>Macterm 1.28.1</title>
       <pubDate>Wed, 16 Sep 2026 20:13:59 +0000</pubDate>
       <sparkle:version>1.28.1.9999</sparkle:version>
@@ -1139,6 +1128,17 @@
       <sparkle:releaseNotesLink>https://macterm.thdxg.dev/notes/v1.28.1.html</sparkle:releaseNotesLink>
       <link>https://github.com/thdxg/macterm/releases/tag/v1.28.1</link>
       <enclosure url="https://github.com/thdxg/macterm/releases/download/v1.28.1/Macterm-1.28.1.dmg" type="application/octet-stream" sparkle:edSignature="fwARyZRalqDW/o6aRgJEZrF559QBlKAM/euvKPeTZ5BpWtkPFRT4W0LIiHSXTzAbl5oZlJFLPeiU8YO7rtJMAg==" length="23136255" />
+    </item>
+    <item>
+      <title>Macterm 1.28.1-tip.1 (tip)</title>
+      <pubDate>Thu, 17 Sep 2026 00:25:55 +0000</pubDate>
+      <sparkle:channel>tip</sparkle:channel>
+      <sparkle:version>1.28.1.9999.1</sparkle:version>
+      <sparkle:shortVersionString>1.28.1-tip.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://macterm.thdxg.dev/notes/tip.html</sparkle:releaseNotesLink>
+      <link>https://github.com/thdxg/macterm/releases/tag/tip</link>
+      <enclosure url="https://github.com/thdxg/macterm/releases/download/tip/Macterm-1.28.1-tip.1.dmg" type="application/octet-stream" sparkle:edSignature="kr79fW6hNIrw/+MzhisYOrVqKLaa0wFc4ycVFmxOBzHFokKWaOJTF/bdSbCCdevjo4zc4dnTM+Y8JKjAVyhABA==" length="23137065" />
     </item>
   </channel>
 </rss>
