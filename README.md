@@ -6,7 +6,6 @@
 
 <p align="center">
   A lightweight macOS terminal with vertical tabs, session persistence, and native UI. Built on libghostty
-
 </p>
 
 <p align="center">
@@ -32,6 +31,9 @@
 <p align="center">
   <a href="https://macterm.thdxg.dev/#features"><b>Watch it work →</b></a>
 </p>
+
+> [!NOTE]
+> This project is unrelated to [MacTerm](https://github.com/kmgrant/macterm), a pre-existing macOS terminal emulator that shares the name.
 
 ## Features
 
