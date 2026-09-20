@@ -5,7 +5,7 @@
 </h1>
 
 <p align="center">
-  A lightweight macOS terminal with vertical tabs, session persistence, and native UI. Built on libghostty
+  A lightweight macOS terminal with vertical tabs, session persistence, and native UI. Built on libghostty.
 </p>
 
 <p align="center">
