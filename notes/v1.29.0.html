@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Macterm 1.29.0 release notes</title>
+  <style>
+    body { font: 13px -apple-system, system-ui, sans-serif; color: #1d1d1f; padding: 16px; margin: 0; }
+    @media (prefers-color-scheme: dark) { body { color: #f5f5f7; background: transparent; } a { color: #6cb4ff; } }
+    h1, h2, h3 { margin-top: 0.6em; margin-bottom: 0.3em; }
+    h1 { font-size: 1.3em; } h2 { font-size: 1.15em; } h3 { font-size: 1em; }
+    p, ul, ol { margin: 0.4em 0; }
+    ul, ol { padding-left: 1.4em; }
+    code { background: rgba(127, 127, 127, 0.15); padding: 0 4px; border-radius: 3px; font: 12px ui-monospace, monospace; }
+    pre { background: rgba(127, 127, 127, 0.12); padding: 8px; border-radius: 4px; overflow-x: auto; }
+    pre code { background: transparent; padding: 0; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<h2>What's New</h2>
+<ul>
+<li>Smooth scrolling and split animations are on by default, in a new Settings → Appearance → Animations pane that replaces Experimental. Dragging the scrollbar now scrolls between rows and reaches the last lines, and closing a pane in the middle of a row or column merges its dividers instead of dragging one across a neighbour. (#408)</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+<li>The smooth cursor draws with hard edges instead of a one-pixel halo, so it is as crisp at rest as the native cursor. (#400)</li>
+<li>Closing a tab whose only pane mirrors a session another tab still holds no longer warns that it will end a running program, and the <code class="notranslate">tab close</code> command and Close Tab shortcut refuse in the same cases. (#402)</li>
+<li>A pane squeezed to a few columns, by a window shrunk to the sidebar's width or a layout passing through a tiny size, keeps its content instead of coming back blank. (#409)</li>
+</ul>
+<p>Thanks to <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/jcuhnoio/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/jcuhnoio">@jcuhnoio</a> and <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/thdxg/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/thdxg">@thdxg</a> for this release.</p>
+</body>
+</html>
