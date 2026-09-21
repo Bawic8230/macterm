@@ -23,6 +23,7 @@
 
 <p align="center">
   <a href="https://macterm.thdxg.dev"><b>Website</b></a> ·
+  <a href="https://macterm.thdxg.dev/docs"><b>Docs</b></a> ·
   <a href="https://github.com/thdxg/macterm/releases"><b>Releases</b></a>
 </p>
 
