@@ -61,15 +61,15 @@ enum Tutorial {
 
     private static func project(_ s: Style, _ shortcut: ShortcutResolver) -> String {
         let grid = keyGrid([
-            (.newTab, "new tab"),
-            (.splitRight, "split right"),
-            (.toggleCommandPalette, "command palette"),
-            (.openProject, "open a folder"),
-            (.splitDown, "split down"),
-            (.toggleSidebar, "toggle sidebar"),
-            (.renameTab, "rename tab"),
-            (.zoomPane, "zoom a pane"),
-            (.toggleQuickTerminal, "quick terminal"),
+            (.newTab, "new tab 新規タブ"),
+            (.splitRight, "split right 右に分割"),
+            (.toggleCommandPalette, "command palette コマンドパレット"),
+            (.openProject, "open a folder フォルダを開く"),
+            (.splitDown, "split down 下に分割"),
+            (.toggleSidebar, "toggle sidebar サイドバー切替"),
+            (.renameTab, "rename tab タブ名変更"),
+            (.zoomPane, "zoom a pane ペイン拡大"),
+            (.toggleQuickTerminal, "quick terminal クイックターミナル"),
         ], style: s, shortcut: shortcut)
 
         let focus = chordList(
@@ -92,7 +92,7 @@ enum Tutorial {
         lines += grid
         if !grid.isEmpty { lines.append("") }
         if let focus {
-            lines.append(s.dim("  Move focus between panes with ") + focus + s.dim("."))
+            lines.append(s.dim("  Move focus between panes with ") + focus + s.dim(". (ペイン間の移動)"))
             lines.append("")
         }
         lines += [
@@ -136,15 +136,15 @@ enum Tutorial {
         // Both pin actions ship unbound, so this pair usually prints nothing —
         // it appears only for a user who has given them chords.
         let pinChords = keyGrid([
-            (.pinTab, "pin this tab"),
-            (.unpinTab, "unpin this tab"),
+            (.pinTab, "pin this tab タブを固定"),
+            (.unpinTab, "unpin this tab 固定を解除"),
         ], style: s, shortcut: shortcut)
         if !pinChords.isEmpty {
             lines += pinChords
             lines.append("")
         }
         lines += [
-            s.dim("  Settings (") + s.accent("⌘,") + s.dim(") → Keymaps rebinds every shortcut."),
+            s.dim("  Settings (") + s.accent("⌘,") + s.dim(") → Keymaps rebinds every shortcut. (設定 → ショートカット変更)"),
             s.dim("  Docs: ") + s.accent("https://macterm.thdxg.dev/docs/"),
             "",
         ]
@@ -167,8 +167,8 @@ enum Tutorial {
             return chord.isEmpty ? nil : (chord, label)
         }
         guard !cells.isEmpty else { return [] }
-        let chordWidth = cells.map(\.0.count).max() ?? 0
-        let labelWidth = cells.map(\.1.count).max() ?? 0
+        let chordWidth = cells.map { displayWidth($0.0) }.max() ?? 0
+        let labelWidth = cells.map { displayWidth($0.1) }.max() ?? 0
         return stride(from: 0, to: cells.count, by: columns).map { start in
             let row = cells[start ..< min(start + columns, cells.count)]
             let rendered = row.enumerated().map { index, cell -> String in
@@ -197,7 +197,32 @@ enum Tutorial {
     }
 
     private static func pad(_ text: String, to width: Int) -> String {
-        text.count >= width ? text : text + String(repeating: " ", count: width - text.count)
+        let current = displayWidth(text)
+        return current >= width ? text : text + String(repeating: " ", count: width - current)
+    }
+
+    /// Terminal column width: East Asian wide characters (kana, kanji,
+    /// fullwidth forms) take two cells, so padding by `count` would misalign
+    /// the grid once labels carry Japanese.
+    static func displayWidth(_ text: String) -> Int {
+        text.unicodeScalars.reduce(0) { width, scalar in
+            switch scalar.value {
+            case 0x1100 ... 0x115F,
+                 0x2E80 ... 0x303E,
+                 0x3041 ... 0x33FF,
+                 0x3400 ... 0x4DBF,
+                 0x4E00 ... 0x9FFF,
+                 0xA000 ... 0xA4CF,
+                 0xAC00 ... 0xD7A3,
+                 0xF900 ... 0xFAFF,
+                 0xFE30 ... 0xFE4F,
+                 0xFF00 ... 0xFF60,
+                 0xFFE0 ... 0xFFE6:
+                width + 2
+            default:
+                width + 1
+            }
+        }
     }
 
     /// ANSI wrapper. `enabled` is the CLI's `isatty(1)` verdict, passed over

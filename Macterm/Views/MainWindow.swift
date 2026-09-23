@@ -847,9 +847,9 @@ struct WelcomeView: View {
 
     private var shortcuts: [(HotkeyAction, String)] {
         [
-            (.openProject, "Open a project"),
-            (.toggleCommandPalette, "Command palette"),
-            (.toggleSidebar, "Toggle sidebar"),
+            (.openProject, "Open a project  プロジェクトを開く"),
+            (.toggleCommandPalette, "Command palette  コマンドパレット"),
+            (.toggleSidebar, "Toggle sidebar  サイドバー切替"),
         ]
     }
 
@@ -872,7 +872,7 @@ struct WelcomeView: View {
                         Text(label)
                             .font(.system(size: 12))
                             .foregroundStyle(MactermTheme.fgMuted)
-                            .frame(width: 160, alignment: .leading)
+                            .frame(width: 280, alignment: .leading)
                         Text(shortcutLabel(for: action))
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(MactermTheme.fgDim)
@@ -921,10 +921,10 @@ struct EmptyProjectView: View {
 
     private var shortcuts: [(HotkeyAction, String)] {
         [
-            (.newTab, "New tab"),
-            (.openProject, "Open another project"),
-            (.toggleCommandPalette, "Command palette"),
-            (.toggleSidebar, "Toggle sidebar"),
+            (.newTab, "New tab  新規タブ"),
+            (.openProject, "Open another project  別のプロジェクトを開く"),
+            (.toggleCommandPalette, "Command palette  コマンドパレット"),
+            (.toggleSidebar, "Toggle sidebar  サイドバー切替"),
         ]
     }
 
@@ -948,7 +948,7 @@ struct EmptyProjectView: View {
                         Text(label)
                             .font(.system(size: 12))
                             .foregroundStyle(MactermTheme.fgMuted)
-                            .frame(width: 160, alignment: .leading)
+                            .frame(width: 280, alignment: .leading)
                         Text(shortcutLabel(for: action))
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(MactermTheme.fgDim)
