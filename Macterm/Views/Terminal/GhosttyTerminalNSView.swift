@@ -2108,8 +2108,14 @@ extension GhosttyTerminalNSView: @preconcurrency NSTextInputClient {
         guard let surface else { return .zero }
         var x: Double = 0, y: Double = 0, w: Double = 0, h: Double = 0
         ghostty_surface_ime_point(surface, &x, &y, &w, &h)
+        // ghostty's y is the cursor cell's BOTTOM edge (top-left origin), so in
+        // AppKit coordinates the cell spans upward from `bounds.height - y`.
+        // Matches upstream Ghostty's SurfaceView.firstRect; the previous
+        // `screenPt.y - h` reported the cell one row below the cursor, so an
+        // IME candidate window flipped above (no room below) covered the
+        // line being composed.
         let viewPt = NSPoint(x: x, y: bounds.height - y)
         let screenPt = window?.convertPoint(toScreen: convert(viewPt, to: nil)) ?? viewPt
-        return NSRect(x: screenPt.x, y: screenPt.y - h, width: w, height: h)
+        return NSRect(x: screenPt.x, y: screenPt.y, width: w, height: h)
     }
 }
