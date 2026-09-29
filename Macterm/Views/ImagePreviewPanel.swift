@@ -280,9 +280,20 @@ private struct CheckerboardBackground: View {
 /// adopting `QLPreviewPanel`'s responder-chain control, which the terminal
 /// view (first responder) would have to take part in. The selected image is
 /// passed first so the viewer opens on it and ←/→ walk the rest.
+///
+/// A click anywhere outside the viewer's windows dismisses it, like a
+/// lightbox: `qlmanage` is another process, so Macterm watches mouse-downs
+/// (local for its own windows, global for everything else — mouse events
+/// need no Accessibility grant) and tests them against the viewer's window
+/// frames from the window server.
+@MainActor
 enum QuickLookLauncher {
+    private static var process: Process?
+    private static var monitors: [Any] = []
+
     static func open(_ urls: [URL], startingAt index: Int) {
         guard urls.indices.contains(index) else { return }
+        close()
         let ordered = Array(urls[index...]) + Array(urls[..<index])
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/qlmanage")
@@ -290,10 +301,69 @@ enum QuickLookLauncher {
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
+        process.terminationHandler = { ended in
+            Task { @MainActor in
+                if Self.process === ended { stopWatching() }
+            }
+        }
         do {
             try process.run()
         } catch {
             logger.error("qlmanage failed: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        self.process = process
+        startWatching()
+    }
+
+    static func close() {
+        stopWatching()
+        if let process, process.isRunning { process.terminate() }
+        process = nil
+    }
+
+    private static func startWatching() {
+        let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { event in
+            dismissIfOutside(NSEvent.mouseLocation)
+            return event
+        }) {
+            monitors.append(local)
+        }
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { _ in
+            let location = NSEvent.mouseLocation
+            Task { @MainActor in dismissIfOutside(location) }
+        }) {
+            monitors.append(global)
+        }
+    }
+
+    private static func stopWatching() {
+        monitors.forEach(NSEvent.removeMonitor)
+        monitors.removeAll()
+    }
+
+    /// `location` is in AppKit screen coordinates (origin bottom-left of the
+    /// main screen); the window server reports top-left origin.
+    private static func dismissIfOutside(_ location: NSPoint) {
+        guard let process, process.isRunning else { return stopWatching() }
+        let frames = viewerWindowFrames(pid: process.processIdentifier)
+        // No window yet (still launching): don't count the click.
+        guard !frames.isEmpty else { return }
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        let flipped = CGPoint(x: location.x, y: mainHeight - location.y)
+        if !frames.contains(where: { $0.contains(flipped) }) { close() }
+    }
+
+    private static func viewerWindowFrames(pid: pid_t) -> [CGRect] {
+        guard let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]]
+        else { return [] }
+        return info.compactMap { window in
+            guard (window[kCGWindowOwnerPID as String] as? pid_t) == pid,
+                  let bounds = window[kCGWindowBounds as String] as? NSDictionary
+            else { return nil }
+            return CGRect(dictionaryRepresentation: bounds)
         }
     }
 }
