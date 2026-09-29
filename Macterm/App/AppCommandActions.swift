@@ -238,6 +238,8 @@ extension AppCommand {
             return { ctx.appState.selectPreviousProject(projects: ctx.projectStore.projects) }
         case .toggleSidebar:
             return { ctx.appState.sidebarVisible.toggle() }
+        case .togglePreviewPanel:
+            return { ctx.appState.togglePreviewPanel() }
         case .newWindow:
             return { ctx.appState.requestNewWindow() }
         case .closeWindow:

@@ -95,6 +95,8 @@ final class ControlHandler {
         case "layout.apply": return try layoutApply(args)
         case "layout.save": return try layoutSave(args)
         case "tutor.render": return try tutorRender(args)
+        case "preview.open": return try previewOpen(args)
+        case "preview.close": return try previewClose(args)
         default:
             throw ControlError(
                 code: .unknownCommand,
@@ -115,6 +117,33 @@ final class ControlHandler {
             activeProject: active?.name,
             activeProjectID: active?.id.uuidString
         ))
+    }
+
+    /// Show images in the right-hand preview panel (`macterm preview`).
+    /// Non-images are skipped and reported rather than failing the whole
+    /// request; nothing previewable at all is a bad request.
+    private func previewOpen(_ args: ControlArgs) throws -> ControlData {
+        let (shown, skipped) = AppState.previewableImages(args.paths ?? [])
+        guard !shown.isEmpty else {
+            throw ControlError(
+                code: .badRequest,
+                message: "no previewable images" + (skipped.isEmpty ? "" : ": " + skipped.joined(separator: ", ")),
+                action: "pass one or more existing image files (png, jpg, gif, webp, heic, …)"
+            )
+        }
+        guard try appState.openPreview(shown, in: resolveWindow(args)) else {
+            throw ControlError(code: .notFound, message: "no window to show the preview in")
+        }
+        return ControlData(preview: ControlPreviewInfo(shown: shown.map(\.path), skipped: skipped))
+    }
+
+    private func previewClose(_ args: ControlArgs) throws -> ControlData {
+        if let window = try resolveWindow(args) {
+            window.previewPanelVisible = false
+        } else {
+            appState.previewPanelVisible = false
+        }
+        return ControlData()
     }
 
     /// Render a tutorial topic (`macterm tutor`). App-side because the text

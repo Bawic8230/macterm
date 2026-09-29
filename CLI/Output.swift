@@ -24,6 +24,14 @@ enum Output {
         if let inspect = data.inspect { renderInspect(inspect) }
         if let dump = data.dump { renderDump(dump) }
         if let tutorial = data.tutorial { print(tutorial.text) }
+        if let preview = data.preview { renderPreview(preview) }
+    }
+
+    private static func renderPreview(_ preview: ControlPreviewInfo) {
+        print("previewing \(preview.shown.count) image\(preview.shown.count == 1 ? "" : "s")")
+        for path in preview.skipped {
+            printError("skipped (not an image or missing): \(path)")
+        }
     }
 
     private static func renderStatus(_ status: ControlStatusInfo) {

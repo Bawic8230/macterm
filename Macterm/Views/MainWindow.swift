@@ -161,24 +161,34 @@ struct MainWindow: View {
             // rows actually start at the window's top edge.
             .ignoresSafeArea(chromeHidden ? .container : [], edges: .top)
         } detail: {
-            ZStack {
-                // The window's NSWindow.backgroundColor (set by WindowAppearance)
-                // fills the detail column at the configured opacity. No need
-                // to paint another tinted layer here — doing so stacks two
-                // translucent fills and the detail reads as darker than the
-                // strip around the sidebar.
-                if let project = activeProjectWithWorkspace {
-                    if projectHasAnyTab(project) {
-                        WorkspaceView(project: project)
-                            .id(project.id)
+            HStack(spacing: 0) {
+                ZStack {
+                    // The window's NSWindow.backgroundColor (set by WindowAppearance)
+                    // fills the detail column at the configured opacity. No need
+                    // to paint another tinted layer here — doing so stacks two
+                    // translucent fills and the detail reads as darker than the
+                    // strip around the sidebar.
+                    if let project = activeProjectWithWorkspace {
+                        if projectHasAnyTab(project) {
+                            WorkspaceView(project: project)
+                                .id(project.id)
+                        } else {
+                            EmptyProjectView(project: project)
+                                .id(project.id)
+                        }
                     } else {
-                        EmptyProjectView(project: project)
-                            .id(project.id)
+                        WelcomeView()
                     }
-                } else {
-                    WelcomeView()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // The image preview panel (`macterm preview`): beside the
+                // terminal, outside its split tree.
+                if windowState.previewPanelVisible, !windowState.previewItems.isEmpty {
+                    ImagePreviewPanel()
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
+            .animation(.smooth(duration: 0.2), value: windowState.previewPanelVisible)
             // Same safe-area reclaim as the sidebar: without it the terminal
             // keeps a blank strip where the hidden titlebar used to be.
             .ignoresSafeArea(chromeHidden ? .container : [], edges: .top)

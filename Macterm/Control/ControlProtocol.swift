@@ -124,6 +124,9 @@ struct ControlArgs: Codable, Equatable {
     /// the text but only the CLI can see whether its stdout is a tty, so the
     /// verdict travels with the request.
     var styled: Bool?
+    /// Absolute image paths for `preview.open` (the CLI resolves relative
+    /// ones — the app's cwd means nothing to the caller).
+    var paths: [String]?
 
     init(
         project: String? = nil,
@@ -149,7 +152,8 @@ struct ControlArgs: Codable, Equatable {
         reset: Bool? = nil,
         submit: Bool? = nil,
         topic: String? = nil,
-        styled: Bool? = nil
+        styled: Bool? = nil,
+        paths: [String]? = nil
     ) {
         self.project = project
         self.tab = tab
@@ -175,6 +179,7 @@ struct ControlArgs: Codable, Equatable {
         self.submit = submit
         self.topic = topic
         self.styled = styled
+        self.paths = paths
     }
 }
 
@@ -235,6 +240,8 @@ struct ControlData: Codable {
     var dump: ControlPaneDump?
     /// Rendered tutorial text (`tutor.render`).
     var tutorial: ControlTutorial?
+    /// What the preview panel now shows (`preview.open`).
+    var preview: ControlPreviewInfo?
 
     init(
         status: ControlStatusInfo? = nil,
@@ -245,7 +252,8 @@ struct ControlData: Codable {
         sessions: [ControlSessionInfo]? = nil,
         inspect: ControlPaneInspect? = nil,
         dump: ControlPaneDump? = nil,
-        tutorial: ControlTutorial? = nil
+        tutorial: ControlTutorial? = nil,
+        preview: ControlPreviewInfo? = nil
     ) {
         self.status = status
         self.projects = projects
@@ -256,6 +264,7 @@ struct ControlData: Codable {
         self.inspect = inspect
         self.dump = dump
         self.tutorial = tutorial
+        self.preview = preview
     }
 }
 
@@ -408,6 +417,12 @@ struct ControlPaneDump: Codable, Equatable {
 struct ControlTutorial: Codable, Equatable {
     var topic: String
     var text: String
+}
+
+/// The images `preview.open` put in the panel, and the ones it skipped.
+struct ControlPreviewInfo: Codable, Equatable {
+    var shown: [String]
+    var skipped: [String]
 }
 
 // MARK: - Codec

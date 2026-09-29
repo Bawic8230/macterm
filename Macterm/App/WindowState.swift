@@ -75,6 +75,14 @@ final class WindowState: Identifiable {
     var isCommandPaletteVisible = false
     var isNewRemoteProjectSheetPresented = false
 
+    /// The right-hand image preview panel (`macterm preview`). Per window for
+    /// the same reason as the sidebar: showing images in one window must not
+    /// open a panel in every other.
+    var previewPanelVisible = false
+    /// The images the panel shows, in order, and which one is selected.
+    var previewItems: [URL] = []
+    var previewSelection = 0
+
     init(activeProjectID: UUID? = nil, sidebarWidth: Double? = nil) {
         self.activeProjectID = activeProjectID
         self.sidebarWidth = sidebarWidth ?? Preferences.shared.sidebarWidth

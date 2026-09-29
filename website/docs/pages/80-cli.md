@@ -70,6 +70,7 @@ The grammar is `macterm <noun> <verb> [options]`. A bare noun defaults to `list`
 | `layout apply [--project P] [--force]` | Reconcile to the project's [layout file](/docs/declarative-layouts). Returns `busy` instead of closing panes. |
 | `layout save [--project P]` | Write the live workspace to `~/.config/macterm/projects/<slug>.yaml`. |
 | `tutor [project\|pinned]` | Print a short tutorial, with your own keybinds. Needs a running app. |
+| `preview <images…> [--window W]` / `preview --close` | Show images in the window's right-hand preview panel (relative paths resolve against your cwd; non-images are skipped). Double-click an image for Quick Look; ⌘⇧I toggles the panel. |
 | `ssh <ssh args…>` | Run ssh with Macterm's terminal integration. The one verb that needs no running app. Flags mirror `ghostty +ssh`: `--terminfo=false`, `--forward-env=false`, `--cache=false`, `--verbose`. |
 
 ## Targeting a pane

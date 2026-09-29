@@ -113,6 +113,19 @@ struct ControlProtocolTests {
     }
 
     @Test
+    func request_and_response_roundtrip_preview_fields() throws {
+        let args = ControlArgs(paths: ["/tmp/a.png", "/tmp/b.jpg"])
+        let decoded = try ControlProtocol.decodeRequest(ControlProtocol.encode(
+            ControlRequest(command: "preview.open", args: args)
+        ))
+        #expect(decoded.args == args)
+
+        let info = ControlPreviewInfo(shown: ["/tmp/a.png"], skipped: ["/tmp/b.jpg"])
+        let response = ControlResponse.success(id: "p1", data: ControlData(preview: info))
+        #expect(try ControlProtocol.decodeResponse(ControlProtocol.encode(response)).data?.preview == info)
+    }
+
+    @Test
     func response_roundtrips_inspect_payload() throws {
         let inspect = ControlPaneInspect(
             id: "pane-id", session: "macterm-demo-abc123def456",

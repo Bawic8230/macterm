@@ -76,6 +76,29 @@ struct ControlHandlerTests {
         #expect(response.id == "custom-id-123")
     }
 
+    // MARK: - preview
+
+    @Test
+    func preview_open_rejects_a_request_with_no_images() async {
+        let (handler, appState, _) = makeHandler()
+        appState.registerWindow(WindowState())
+        let response = await handler.handle(request("preview.open", args: ControlArgs(paths: ["/no/such.png"])))
+        #expect(!response.ok)
+        #expect(response.error?.code == .badRequest)
+    }
+
+    @Test
+    func preview_close_hides_the_key_window_panel() async {
+        let (handler, appState, _) = makeHandler()
+        let window = WindowState()
+        appState.registerWindow(window)
+        window.previewItems = [URL(fileURLWithPath: "/tmp/x.png")]
+        window.previewPanelVisible = true
+        let response = await handler.handle(request("preview.close"))
+        #expect(response.ok)
+        #expect(!window.previewPanelVisible)
+    }
+
     // MARK: - status
 
     @Test

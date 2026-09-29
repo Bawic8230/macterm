@@ -17,6 +17,7 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
     case splitDown = "split_down"
     case splitAuto = "split_auto"
     case toggleSidebar = "toggle_sidebar"
+    case togglePreviewPanel = "toggle_preview_panel"
     case recentTab = "recent_tab"
     case nextProject = "next_project"
     case previousProject = "previous_project"
@@ -88,6 +89,8 @@ enum HotkeyAction: String, CaseIterable, Identifiable {
         case .splitDown: "cmd+shift+d"
         case .splitAuto: "none"
         case .toggleSidebar: "cmd+\\"
+        // ⌘⌥I is ghostty's inspector.
+        case .togglePreviewPanel: "cmd+shift+i"
         case .recentTab: "ctrl+tab"
         case .nextProject: "cmd+]"
         case .previousProject: "cmd+["

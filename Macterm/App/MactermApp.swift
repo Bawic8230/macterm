@@ -131,6 +131,12 @@ struct MactermApp: App {
             CommandGroup(replacing: .sidebar) {
                 AppCommandMenuItem(command: .toggleSidebar, appState: appState, projectStore: projectStore, titleOverride: "Toggle Sidebar")
                 AppCommandMenuItem(
+                    command: .togglePreviewPanel,
+                    appState: appState,
+                    projectStore: projectStore,
+                    titleOverride: "Toggle Preview Panel"
+                )
+                AppCommandMenuItem(
                     command: .toggleCommandPalette,
                     appState: appState,
                     projectStore: projectStore,
