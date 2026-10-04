@@ -27,7 +27,7 @@ At pin time Macterm captures the tab's splits, each pane's working directory, an
 
 ## pinned.yaml
 
-The pinned set lives in `~/.config/macterm/projects/pinned.yaml`, maintained automatically and still yours to edit.
+The pinned set lives in `~/.config/macterm/pinned.yaml`, maintained automatically and still yours to edit. (It used to live in `~/.config/macterm/projects/`; Macterm moves an existing file up the first time it runs.)
 
 ```yaml
 path: <pinned>
@@ -53,3 +53,5 @@ Entries carry no ids; Macterm matches them by `name:`, then content, then positi
 ```sh
 macterm tab list --project pinned
 ```
+
+Because `pinned` always means this workspace, no project can be named Pinned: the name is refused wherever you type it, and a folder called Pinned is added as `Pinned 2`.

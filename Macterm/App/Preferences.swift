@@ -69,6 +69,26 @@ enum TabSwitcherVisibility: String, CaseIterable, Identifiable {
 /// That is harmless because the comparison versions can't collide: a beta sorts
 /// below the stable release of the same `X.Y.Z` and a tip sorts above it (see
 /// `sparkle_comparison_version` in scripts/_lib.sh).
+/// When Autofill asks the user to authenticate (Settings → Passwords). The raw
+/// values are persisted; the case order is the picker's.
+enum PasswordAutofillAuthentication: String, CaseIterable, Identifiable {
+    /// The default, "Once per app launch": the first Autofill asks, and the
+    /// answer stands until Macterm quits, the Mac locks or sleeps, or the user
+    /// switches away. The raw value predates the label; it is persisted.
+    case untilLocked
+    /// Every Autofill, like Safari.
+    case everyTime
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .untilLocked: "Once per app launch"
+        case .everyTime: "Every time"
+        }
+    }
+}
+
 enum UpdateChannel: String, CaseIterable, Identifiable {
     case stable
     case beta
@@ -358,16 +378,6 @@ final class Preferences {
         didSet { Keys.showSpinnerOverAgentIcons.write(showSpinnerOverAgentIcons, to: defaults) }
     }
 
-    /// Auto-name tabs after the live foreground process / OSC title (on by
-    /// default). Off = tabs hold their static fallback (login shell name, or
-    /// the host name for remote panes); a user-set custom title always wins
-    /// either way. Display-only: the polling and probing keep running for
-    /// busy-close verdicts and execution tracking (`Pane.displayTitle` is
-    /// the single gate).
-    var autoNameTabs: Bool {
-        didSet { Keys.autoNameTabs.write(autoNameTabs, to: defaults) }
-    }
-
     /// Give each new project a color tag. Off by default, and consulted at
     /// creation only — flipping it neither tags existing projects nor clears
     /// tags already set.
@@ -409,6 +419,19 @@ final class Preferences {
     /// every wake.
     var reconnectRemotePanes: Bool {
         didSet { Keys.reconnectRemotePanes.write(reconnectRemotePanes, to: defaults) }
+    }
+
+    /// The password manager (Settings → Passwords): offering to save a
+    /// password once it works, and autofilling a saved one. Off, the monitor
+    /// captures, offers and fills nothing; prompt detection still drives
+    /// `macos-auto-secure-input`. Saved passwords stay in the keychain.
+    var passwordManagerEnabled: Bool {
+        didSet { Keys.passwordManagerEnabled.write(passwordManagerEnabled, to: defaults) }
+    }
+
+    /// When Autofill asks for Touch ID or the login password.
+    var passwordAutofillAuthentication: PasswordAutofillAuthentication {
+        didSet { Keys.passwordAutofillAuthentication.write(passwordAutofillAuthentication, to: defaults) }
     }
 
     /// Stable per-installation identity, lazily created on first use. Stamped
@@ -866,12 +889,13 @@ final class Preferences {
         showTabSwitcherOverlay = Keys.showTabSwitcherOverlay.read(defaults)
         recentTabCandidates = Keys.recentTabCandidates.read(defaults)
         showSpinnerOverAgentIcons = Keys.showSpinnerOverAgentIcons.read(defaults)
-        autoNameTabs = Keys.autoNameTabs.read(defaults)
         autoAssignProjectColors = Keys.autoAssignProjectColors.read(defaults)
         showNewProjectButton = Keys.showNewProjectButton.read(defaults)
         showProjectNewTabButton = Keys.showProjectNewTabButton.read(defaults)
         backgroundSSHConnections = Keys.backgroundSSHConnections.read(defaults)
         reconnectRemotePanes = Keys.reconnectRemotePanes.read(defaults)
+        passwordManagerEnabled = Keys.passwordManagerEnabled.read(defaults)
+        passwordAutofillAuthentication = Keys.passwordAutofillAuthentication.read(defaults)
         peekSidebarWhenHidden = Keys.peekSidebarWhenHidden.read(defaults)
         let storedSidebarWidth = Keys.sidebarWidth.read(defaults)
         sidebarWidth = storedSidebarWidth
@@ -948,6 +972,19 @@ final class Preferences {
             defaults.removeObject(forKey: "macterm.intents.shortcutsAccess")
             defaults.set(true, forKey: Keys.migrationRetiredGhosttyOwnedKeys)
         }
+        // Desktop widgets lost their size presets: a new one is always
+        // `DesktopWidgetSpan.initial`, so Settings' default size is dead.
+        if !defaults.bool(forKey: Keys.migrationRetiredWidgetDefaultSize) {
+            defaults.removeObject(forKey: "macterm.desktopWidgets.defaultSize")
+            defaults.set(true, forKey: Keys.migrationRetiredWidgetDefaultSize)
+        }
+        // Tabs are always named after the running program now; the toggle
+        // that could pin the static shell / host name is gone, so its key
+        // is dead.
+        if !defaults.bool(forKey: Keys.migrationRetiredAutoNameTabs) {
+            defaults.removeObject(forKey: "macterm.tabs.autoName")
+            defaults.set(true, forKey: Keys.migrationRetiredAutoNameTabs)
+        }
     }
 
     /// Reads the two-layer config preference. The single-path key came from the
@@ -1022,12 +1059,17 @@ final class Preferences {
             "macterm.tabs.recentTabCandidates", default: unlimitedRecentTabCandidates, normalize: clampRecentTabCandidates
         )
         static let showSpinnerOverAgentIcons = PreferenceStorageKey("macterm.sidebar.showSpinnerOverAgentIcons", default: true)
-        static let autoNameTabs = PreferenceStorageKey("macterm.tabs.autoName", default: true)
         static let autoAssignProjectColors = PreferenceStorageKey("macterm.projects.autoAssignColors", default: false)
         static let showNewProjectButton = PreferenceStorageKey("macterm.sidebar.showNewProjectButton", default: true)
         static let showProjectNewTabButton = PreferenceStorageKey("macterm.sidebar.showProjectNewTabButton", default: true)
         static let backgroundSSHConnections = PreferenceStorageKey("macterm.remote.backgroundSSHConnections", default: true)
         static let reconnectRemotePanes = PreferenceStorageKey("macterm.remote.reconnectDroppedPanes", default: true)
+        /// The key of the "Offer to save passwords" toggle this replaced, so a
+        /// user who switched that off finds the whole feature off, never on.
+        static let passwordManagerEnabled = PreferenceStorageKey("macterm.passwords.offerToSave", default: true)
+        static let passwordAutofillAuthentication = PreferenceStorageKey(
+            "macterm.passwords.autofillAuthentication", default: PasswordAutofillAuthentication.untilLocked
+        )
         static let peekSidebarWhenHidden = PreferenceStorageKey("macterm.sidebar.peekWhenHidden", default: true)
         static let sidebarWidth = PreferenceStorageKey("macterm.sidebar.width", default: defaultSidebarWidth) {
             clampSidebarWidth($0)
@@ -1049,6 +1091,8 @@ final class Preferences {
         static let migrationRetiredToggleKeys = "macterm.migration.retired_toggle_keys"
         static let migrationRetiredPaneDimKey = "macterm.migration.retired_pane_dim_key"
         static let migrationRetiredGhosttyOwnedKeys = "macterm.migration.retired_ghostty_owned_keys"
+        static let migrationRetiredWidgetDefaultSize = "macterm.migration.retired_widget_default_size"
+        static let migrationRetiredAutoNameTabs = "macterm.migration.retired_auto_name_tabs"
     }
 }
 
@@ -1060,5 +1104,6 @@ extension WindowGlassStyle: PreferenceValue {}
 extension QuickTerminalAdjustMode: PreferenceValue {}
 extension SidebarIconSize: PreferenceValue {}
 extension UpdateChannel: PreferenceValue {}
+extension PasswordAutofillAuthentication: PreferenceValue {}
 extension TabSwitcherVisibility: PreferenceValue {}
 extension TabSwitcherPosition: PreferenceValue {}

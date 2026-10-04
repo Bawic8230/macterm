@@ -28,7 +28,7 @@ From any other shell, use the bundle path or symlink it onto your `PATH`:
 /Applications/Macterm.app/Contents/Resources/bin/macterm status
 ```
 
-Every command takes `--json` for a scriptable payload and `--socket <path>` to target a specific instance. `--help` works at every level.
+Every command that talks to the app takes `--json` for a scriptable payload and `--socket <path>` to target a specific instance. `--help` works at every level.
 
 ## Commands
 
@@ -38,7 +38,7 @@ The grammar is `macterm <noun> <verb> [options]`. A bare noun defaults to `list`
 |---|---|
 | `status` | Version, pid, active project. Exits non-zero if no app is reachable. |
 | `project list` | All projects with refs (`project:1`), active/loaded markers, tab counts. |
-| `project create <path> [--name N] [--select]` | Add a project for a local directory or a [remote spec](/docs/remote-projects). **Not idempotent** — each run adds a distinct project. |
+| `project create <path> [--name N] [--select]` | Add a project for a local directory or a [remote spec](/docs/remote-projects). **Not idempotent** — each run adds a distinct project. `--name` defaults to the directory's name and can't be empty. `Pinned` is reserved: `--name Pinned` is refused, and a directory named Pinned is added as `Pinned 2`. |
 | `project select <name\|uuid\|index> [--window W]` | Make a project active. `pinned` selects the pinned-tabs workspace. |
 | `project rename <project> <name>` | Rename a project. `Pinned` is reserved. |
 | `project remove <project> [--force]` | Remove a project, killing its sessions. Returns `busy` when a pane runs a program, unless forced. Deletes no files. |
@@ -52,6 +52,12 @@ The grammar is `macterm <noun> <verb> [options]`. A bare noun defaults to `list`
 | `window new` | Open another window on the current project. |
 | `window focus <window>` | Bring a window to the front. |
 | `window close [--window W]` | Close a window. The last visible one hides instead. |
+| `widget list` | [Desktop widgets](/docs/desktop-widgets) in creation order (`widget:1`), with name, size, locked/editing and session name. |
+| `widget new [--size S] [--name N] [--run CMD]` | Add a locked desktop widget running your login shell, in the middle of the desktop. `S` is a grid span, `COLUMNSxROWS` like `3x2`; the default is `3x3`. `--run` types CMD into the shell whenever the widget starts one. |
+| `widget set <widget> --size S` | Resize a widget. It snaps to the grid. |
+| `widget edit <widget>` | Unlock a widget for typing, moving and resizing. Returns `busy` while another widget is being edited. |
+| `widget done` | Lock the widget being edited. |
+| `widget remove <widget> [--force]` | Remove a widget, ending its shell. Returns `busy` when a program runs in it, unless forced. |
 | `pane list [--project P] [--tab T]` | Panes with refs, session names, cwd, foreground process, and execution state. |
 | `pane inspect [target]` | Snapshot of a pane's terminal core. Needs a live surface. |
 | `pane dump [--scrollback] [target]` | Print a pane's terminal text. Text only, pipeline-friendly. |
@@ -60,7 +66,7 @@ The grammar is `macterm <noun> <verb> [options]`. A bare noun defaults to `list`
 | `pane focus <target>` | Focus a pane: selects its tab, fronts the window, restores keyboard focus. |
 | `pane focus --direction left\|down\|up\|right [target]` | Focus the nearest pane that way. A no-op at the outermost edge, not an error. |
 | `pane close (--pane P \| --session S) [--force]` | Close a pane. Always requires an explicit target. |
-| `pane run <command…> [--no-submit] [target]` | Type a command plus newline into a live pane. `--no-submit` leaves the text on the prompt. |
+| `pane run [--no-submit] [target] -- <command…>` | Type a command plus newline into a live pane. `--no-submit` leaves the text on the prompt. See [Typing into a pane](#typing-into-a-pane). |
 | `pane key <chord> [target]` | Send one key press (`a`, `ctrl+c`, `escape`, `up`). |
 | `pane zoom [target]` | Toggle zoom on a pane. |
 | `pane resize-split --axis horizontal\|vertical --ratio R [target]` | Set the ratio (0.15–0.85) of the nearest split on that axis. |
@@ -71,7 +77,8 @@ The grammar is `macterm <noun> <verb> [options]`. A bare noun defaults to `list`
 | `layout save [--project P]` | Write the live workspace to `~/.config/macterm/projects/<slug>.yaml`. |
 | `tutor [project\|pinned]` | Print a short tutorial, with your own keybinds. Needs a running app. |
 | `preview <images…> [--window W]` / `preview --close` | Show images in the window's right-hand preview panel (relative paths resolve against your cwd; non-images are skipped). Double-click an image for Quick Look; ⌘⇧I toggles the panel. |
-| `ssh <ssh args…>` | Run ssh with Macterm's terminal integration. The one verb that needs no running app. Flags mirror `ghostty +ssh`: `--terminfo=false`, `--forward-env=false`, `--cache=false`, `--verbose`. |
+| `ssh <ssh args…>` | Run ssh with Macterm's terminal integration. Needs no running app. Flags mirror `ghostty +ssh`: `--terminfo=false`, `--forward-env=false`, `--cache=false`, `--verbose`. |
+| `skills [name] [--list]` | Print [skills for coding agents](#skills-for-coding-agents): all of them after install instructions, or one `SKILL.md` verbatim. Needs no running app. |
 
 ## Targeting a pane
 
@@ -79,12 +86,24 @@ Projects and tabs accept a **name**, a **UUID**, or the **1-based index** from l
 
 Pane verbs resolve their target in this order:
 
-1. `--session <name>` — the zmx session name. **Restart-stable**: pane UUIDs regenerate every launch, session names don't.
+1. `--session <name>` — the zmx session name. **Restart-stable**: pane UUIDs regenerate every launch, session names don't. Found in whichever project holds it, unless `--project` names one.
 2. `--pane <uuid|index>`.
 3. `MACTERM_SESSION` — inside a pane, so a bare `macterm pane split` splits the pane you're in. An explicit `--tab` disables this.
 4. Otherwise, the focused pane of the active tab.
 
+A [desktop widget](/docs/desktop-widgets)'s pane belongs to no project, so `pane dump`, `pane inspect`, `pane run` and `pane key` reach it by `--session` alone, or by `MACTERM_SESSION` from inside the widget.
+
 `pane close` never uses the `MACTERM_SESSION` fallback. `pane focus --direction` treats the resolved target as the **origin**, and reports the pane that ended up focused.
+
+## Typing into a pane
+
+`pane run` types everything after `--` exactly as given, dashes included:
+
+```sh
+macterm pane run --session macterm-api-8f327ce4a3f8 -- ls -la
+```
+
+Before `--`, its own flags (`--no-submit`, the target selectors, `--socket`, `--json`) are read wherever they appear, and words without a leading dash are typed, so `macterm pane run ls` and `macterm pane run clear --session macterm-api-8f327ce4a3f8` need no `--`. Any other word starting with `-` before `--` is an error and nothing is typed: `macterm pane run ls -la` fails and prints the same command with its text moved after `--`. `--help` before `--` prints help.
 
 ## Reading a pane
 
@@ -107,6 +126,16 @@ needs confirm quit  false
 Both need a **live surface** — a never-shown pane returns `no_surface`. Select its tab once.
 
 > Cursor position and a direct alt-screen query aren't available over libghostty's C ABI. `alt-screen` here is a heuristic, and reads `-` until the surface emits its first scrollbar update.
+
+## Skills for coding agents
+
+`macterm skills` prints [Agent Skills](https://agentskills.io) — `SKILL.md` files that Claude Code, Codex, OpenCode, Gemini CLI, Cursor and other agents load from a skills directory — teaching an agent this CLI: running commands in panes and reading their output (`macterm-panes`), building a workspace that persists (`macterm-workspace`), and running sub-agents in panes of their own (`macterm-subagents`). There's no installer; the agent installs them. Give it this prompt:
+
+```text
+Run `macterm skills` and install each skill it prints into your skills directory as <name>/SKILL.md, exactly as printed. Then tell me what you installed and where.
+```
+
+`macterm skills <name>` prints one skill verbatim, so `macterm skills macterm-panes > <skills dir>/macterm-panes/SKILL.md` installs it; `--list` names them. The text ships inside the CLI, so it always matches your version: install again after updating Macterm.
 
 ## Environment
 

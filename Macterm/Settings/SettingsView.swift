@@ -11,7 +11,9 @@ private enum SettingsPane: String, CaseIterable, Identifiable {
     case appearance = "Appearance"
     case animations = "Animations"
     case quickTerminal = "Quick Terminal"
+    case widgets = "Widgets"
     case keymaps = "Keymaps"
+    case passwords = "Passwords"
     case updates = "Updates"
 
     var id: String { rawValue }
@@ -24,7 +26,9 @@ private enum SettingsPane: String, CaseIterable, Identifiable {
         case .appearance: "paintpalette"
         case .animations: "wand.and.sparkles"
         case .quickTerminal: "rectangle.bottomthird.inset.filled"
+        case .widgets: "widget.small"
         case .keymaps: "keyboard"
+        case .passwords: "key"
         case .updates: "arrow.triangle.2.circlepath"
         }
     }
@@ -79,7 +83,9 @@ struct SettingsView: View {
         case .appearance: AppearanceSettings()
         case .animations: AnimationsSettings()
         case .quickTerminal: QuickTerminalSettings()
+        case .widgets: WidgetsSettings()
         case .keymaps: KeymapSettings()
+        case .passwords: PasswordsSettings()
         case .updates: UpdatesSettings()
         }
     }
@@ -327,6 +333,23 @@ private enum SettingsWindowChrome {
             height: SettingsView.windowMinHeight
         )
     }
+
+    /// Makes the titlebar draggable again after a `Slider` drag.
+    ///
+    /// Once a slider's tracking loop ends, a titlebar drag stops moving this
+    /// window — the press reaches `NSThemeFrame` and nothing moves — until
+    /// something makes AppKit hand the window server its drag state again: a
+    /// click in the content, a pane switch, a programmatic move. `isMovable`
+    /// still reads true and the hit test lands on the toolbar throughout, so
+    /// nothing readable is wrong; flipping `isMovable` and back is the public
+    /// call that re-sends it (measured: the flip restores the drag, attaching
+    /// a debugger alone does not). Restores the prior value rather than
+    /// assuming true.
+    static func refreshWindowDrag(of window: NSWindow) {
+        let movable = window.isMovable
+        window.isMovable = !movable
+        window.isMovable = movable
+    }
 }
 
 // MARK: - Shared styling
@@ -407,6 +430,8 @@ private struct SettingsSlider: View {
     var step: Double?
     let display: (Double) -> String
 
+    @State private var host = HostWindow()
+
     var body: some View {
         // The `Slider` dims itself inside a `.disabled(_:)` scope, but the
         // flanking `Text`s are not controls and wouldn't follow on their own.
@@ -415,14 +440,57 @@ private struct SettingsSlider: View {
                 .frame(width: Self.labelWidth, alignment: .leading)
                 .dimsWhenDisabled()
             if let step {
-                Slider(value: $value, in: range, step: step)
+                Slider(value: $value, in: range, step: step, onEditingChanged: editingChanged)
             } else {
-                Slider(value: $value, in: range)
+                Slider(value: $value, in: range, onEditingChanged: editingChanged)
             }
             Text(display(value))
                 .monospacedDigit()
                 .frame(width: Self.valueWidth, alignment: .trailing)
                 .dimsWhenDisabled()
+        }
+        .background(HostWindowReader(host: host))
+    }
+
+    /// Once a drag ends, restore the window's titlebar drag — see
+    /// `SettingsWindowChrome.refreshWindowDrag`. Deferred a turn so the
+    /// slider's tracking loop has fully unwound first.
+    private func editingChanged(_ editing: Bool) {
+        guard !editing else { return }
+        DispatchQueue.main.async {
+            guard let window = host.window else { return }
+            SettingsWindowChrome.refreshWindowDrag(of: window)
+        }
+    }
+}
+
+/// The window a view is in, for the few AppKit calls SwiftUI has no route to.
+/// A class so the reader can fill it in without an update cycle.
+@MainActor
+private final class HostWindow {
+    weak var window: NSWindow?
+}
+
+private struct HostWindowReader: NSViewRepresentable {
+    let host: HostWindow
+
+    func makeNSView(context _: Context) -> NSView {
+        let view = Probe()
+        view.host = host
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context _: Context) {
+        (nsView as? Probe)?.host = host
+        host.window = nsView.window
+    }
+
+    private final class Probe: NSView {
+        weak var host: HostWindow?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            host?.window = window
         }
     }
 }
@@ -1017,7 +1085,6 @@ private struct AppearanceSettings: View {
     @State private var showAgentIcons: Bool = Preferences.shared.showAgentIcons
     @State private var showTabStatusIndicator: Bool = Preferences.shared.showTabStatusIndicator
     @State private var showSpinnerOverAgentIcons: Bool = Preferences.shared.showSpinnerOverAgentIcons
-    @State private var autoNameTabs: Bool = Preferences.shared.autoNameTabs
     @State private var autoAssignProjectColors: Bool = Preferences.shared.autoAssignProjectColors
     @State private var peekSidebarWhenHidden: Bool = Preferences.shared.peekSidebarWhenHidden
     @State private var showNewProjectButton: Bool = Preferences.shared.showNewProjectButton
@@ -1138,13 +1205,6 @@ private struct AppearanceSettings: View {
                 .onChange(of: sidebarIconSize) { _, v in
                     Preferences.shared.sidebarIconSize = SidebarIconSize(rawValue: v) ?? .medium
                 }
-
-                Toggle("Auto-name tabs", isOn: $autoNameTabs)
-                    .onChange(of: autoNameTabs) { _, v in
-                        Preferences.shared.autoNameTabs = v
-                    }
-                Text("Names tabs after the running program. When off, tabs show the shell or host name.")
-                    .settingsCaption()
 
                 Toggle("Auto-assign project colors", isOn: $autoAssignProjectColors)
                     .onChange(of: autoAssignProjectColors) { _, v in

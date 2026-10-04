@@ -59,13 +59,16 @@ final class GhosttyCallbacks: @unchecked Sendable {
             guard let view = surfaceView(from: target) else { return true }
             let exitCode = action.action.command_finished.exit_code
             let duration = action.action.command_finished.duration
-            DispatchQueue.main.async { view.onCommandFinished?(exitCode, duration) }
+            DispatchQueue.main.async {
+                PasswordPromptMonitor.shared.viewDidFinishCommand(view, exitCode: Int32(exitCode))
+                view.onCommandFinished?(exitCode, duration)
+            }
             return true
         case GHOSTTY_ACTION_PROGRESS_REPORT:
+            // OSC 9;4. Only the state is read — the percentage is never shown.
             guard let view = surfaceView(from: target) else { return true }
-            let state = action.action.progress_report.state
-            let running = state == GHOSTTY_PROGRESS_STATE_SET || state == GHOSTTY_PROGRESS_STATE_INDETERMINATE
-            DispatchQueue.main.async { view.surfaceDidReportProgress(running: running) }
+            let report = Self.progressReport(for: action.action.progress_report.state)
+            DispatchQueue.main.async { view.surfaceDidReportProgress(report) }
             return true
         case GHOSTTY_ACTION_SCROLLBAR:
             guard let view = surfaceView(from: target) else { return true }
@@ -288,6 +291,20 @@ final class GhosttyCallbacks: @unchecked Sendable {
             let title = action.action.set_tab_title.title.flatMap { String(cString: $0) } ?? ""
             DispatchQueue.main.async { view.onSetTabTitle?(title.isEmpty ? nil : title) }
             return true
+        case GHOSTTY_ACTION_TOGGLE_FULLSCREEN:
+            // `toggle_fullscreen` — ⌃⌘F and ⌘↩ in ghostty's defaults — takes
+            // the pane's own window full screen, as in Ghostty.app. Always
+            // native: the same `toggleFullScreen(_:)` as AppKit's Enter Full
+            // Screen item (fn+F), so `macos-non-native-fullscreen` is not
+            // honored. The quick terminal's panel can't go native full screen
+            // (Ghostty.app uses its non-native mode there) and the incubator
+            // is never on screen, so both decline.
+            guard let view = surfaceView(from: target) else { return false }
+            DispatchQueue.main.async {
+                guard let window = view.window, AppDelegate.isTerminalWindowCandidate(window) else { return }
+                window.toggleFullScreen(nil)
+            }
+            return true
         case GHOSTTY_ACTION_SHOW_CHILD_EXITED:
             // Log-only, and deliberately `return false` so the core still
             // renders its own message / abnormal-exit overlay — the error UI
@@ -314,7 +331,7 @@ final class GhosttyCallbacks: @unchecked Sendable {
             return true
         default:
             // Deliberately unhandled: window/tab/split management actions
-            // (NEW_TAB, NEW_SPLIT, GOTO_*, TOGGLE_FULLSCREEN, QUIT, …) —
+            // (NEW_TAB, NEW_SPLIT, GOTO_*, QUIT, …) —
             // those concepts are Macterm-owned via AppCommand/hotkeys, not
             // ghostty keybinds; GTK/iOS-only actions (SHOW_GTK_INSPECTOR,
             // SHOW_ON_SCREEN_KEYBOARD); the imgui INSPECTOR; sizing hints
@@ -329,6 +346,19 @@ final class GhosttyCallbacks: @unchecked Sendable {
             // purpose: returning false makes the core render its own
             // abnormal-exit overlay, which is the error UI Macterm relies on.
             return false
+        }
+    }
+
+    /// What an OSC 9;4 state says about the pane's run. SET and INDETERMINATE
+    /// are work under way, ERROR ends the run as a failure, and REMOVE and
+    /// PAUSE end it as they always have. A state this build doesn't know ends
+    /// the run too, the reading that can't leave a spinner up. Pure, for tests.
+    static func progressReport(for state: ghostty_action_progress_report_state_e) -> TerminalProgressReport {
+        switch state {
+        case GHOSTTY_PROGRESS_STATE_SET,
+             GHOSTTY_PROGRESS_STATE_INDETERMINATE: .running
+        case GHOSTTY_PROGRESS_STATE_ERROR: .failed
+        default: .ended
         }
     }
 

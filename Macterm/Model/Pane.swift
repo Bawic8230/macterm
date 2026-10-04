@@ -180,6 +180,10 @@ final class Pane: Identifiable {
     var executionState: TerminalExecutionState = .idle {
         didSet {
             guard executionState != oldValue else { return }
+            // A failure describes the `.done` it was recorded on, so it goes
+            // the moment the pane leaves `.done` — acknowledged, or a new run
+            // started — exactly when the green dot would.
+            if oldValue == .done, completionFailed { completionFailed = false }
             // A remote pane's OSC title expires when its command ends — the
             // execution edge is the pid-change analogue local panes get from
             // the poll (see `receiveRemoteReportedTitle`).
@@ -197,6 +201,17 @@ final class Pane: Identifiable {
             NotificationCenter.default.post(name: .terminalPollEvent, object: nil)
         }
     }
+
+    /// Whether the run that left this pane `.done` reported a failure — an
+    /// OSC 9;4 ERROR (`markProgressFinished(failed:)`) — so its status dot is
+    /// red instead of green. It means something only while `executionState`
+    /// is `.done`: it is set only as the pane lands on `.done`, and cleared
+    /// whenever the state leaves `.done` (`executionState`'s `didSet`), which
+    /// is what makes every acknowledgement path clear red exactly as it
+    /// clears green. A flag rather than a fourth `TerminalExecutionState`,
+    /// because the tracker's guards compare against `.done` and a new case
+    /// would slip past them all.
+    private(set) var completionFailed = false
 
     /// The pending-probe request for this remote pane (see
     /// `RemoteProbeRequest`). Set when the pane crossed an execution boundary
@@ -254,6 +269,16 @@ final class Pane: Identifiable {
     @ObservationIgnored
     private var activityQuietPollWork: DispatchWorkItem?
     private let activityQuietPollDelay: TimeInterval
+
+    /// Rate limit on what a reported title costs (`TitleReportThrottle`):
+    /// the first title after a quiet window is evaluated at once, the rest
+    /// of the window's titles are held and the newest flushed once at its
+    /// end by `titleFlushWork`. Not observed: the title it holds is not yet
+    /// the pane's.
+    @ObservationIgnored
+    private var titleReportThrottle: TitleReportThrottle
+    @ObservationIgnored
+    private var titleFlushWork: DispatchWorkItem?
 
     /// Re-read the foreground process name from the process table and publish it
     /// only when it changed (so a steady poll doesn't churn `@Observable` and
@@ -384,12 +409,32 @@ final class Pane: Identifiable {
     /// The shell returned to a prompt (OSC 133;D) — recorded even when the
     /// status indicator is off, because the naming path uses it to reject
     /// prompt-hook processes.
+    /// Whether the shell sits at its prompt (OSC 133;D since the last real
+    /// submission). A foreground seen then is a prompt hook, not a command —
+    /// the rule the tracker's own start gate and the naming path apply; the
+    /// widget recipe capture reads it for the same reason.
+    var isShellAtPrompt: Bool { executionTracker.isShellAtPrompt }
+
     func notePromptReturned() {
         executionTracker.notePromptReturned()
     }
 
-    func markProgressFinished() {
-        executionState = executionTracker.markProgressFinished(currentState: executionState)
+    /// A progress report ended the pane's run: REMOVE or PAUSE, or ERROR when
+    /// `failed`. The failure lands on whatever `.done` results rather than only
+    /// on a transition made here, because the caller (`TerminalSurface`)
+    /// reports only for a pane that was `.running` when the report arrived and
+    /// refreshes the foreground first — which has already settled the run when
+    /// the program exited straight after its ERROR. A report that finds the
+    /// pane already `.done` never clears a failure: that is the REMOVE a
+    /// program sends after its ERROR, so SET → ERROR → REMOVE stays red.
+    ///
+    /// The flag is set before the state is published, because publishing
+    /// wakes the poll synchronously and the poll can save the workspace (or
+    /// acknowledge the pane) on the spot — it has to see how the run ended.
+    func markProgressFinished(failed: Bool = false) {
+        let next = executionTracker.markProgressFinished(currentState: executionState)
+        if failed, next == .done { completionFailed = true }
+        executionState = next
         cancelActivityQuietPollIfNeeded()
     }
 
@@ -462,12 +507,15 @@ final class Pane: Identifiable {
         return true
     }
 
-    /// Restore the persisted "done / needs attention" state after a relaunch.
-    /// Only the user-visible checkmark is restored; the live tracker starts
+    /// Restore the persisted "done / needs attention" state after a relaunch,
+    /// and whether that run failed (`completionFailed`), so a red dot comes
+    /// back red. Only the user-visible dot is restored; the live tracker starts
     /// idle, so the first real foreground/output signal behaves normally and
     /// a user interaction (or focusing the tab) clears it via
     /// `acknowledgeCommandCompletion`.
-    func restoreNeedsAttention() {
+    func restoreNeedsAttention(failed: Bool = false) {
+        // Flag first, for the reason `markProgressFinished` gives.
+        completionFailed = failed
         executionState = .done
     }
 
@@ -522,16 +570,57 @@ final class Pane: Identifiable {
         cancelActivityQuietPollIfNeeded()
     }
 
-    /// Handle an OSC 0/2 title reported by the surface. Always refreshes the
+    /// Handle an OSC 0/2 title reported by the surface. Refreshes the
     /// foreground process (a title arrival is a command boundary); adopts the
     /// string as `programTitle` only when a real program — not the shell — is
     /// in the foreground (see `programTitle` for why).
+    ///
+    /// Throttled (`TitleReportThrottle`): the provenance lookup and the
+    /// refresh are ~100µs of syscalls, which a zmx session replaying
+    /// prompt-heavy scrollback at launch — a title per prompt, 150k of them
+    /// measured as 14s of frozen main thread — cannot pay per title. The
+    /// first title after a quiet window is handled here and now; the rest of
+    /// the window's titles are held, and the newest is handled once at the
+    /// window's end (`flushHeldTitle`), gated against the foreground that
+    /// holds the pane then — no later than the poll's own next tick would
+    /// have looked. `receiveReportedTitle(_:programPID:)` is the unthrottled
+    /// core.
     func receiveReportedTitle(_ title: String) {
+        switch titleReportThrottle.receive(title, at: Date()) {
+        case .evaluate:
+            evaluateReportedTitle(title)
+        case let .held(flushAfter):
+            guard let flushAfter else { return }
+            let work = DispatchWorkItem { [weak self] in self?.flushHeldTitle() }
+            titleFlushWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + flushAfter, execute: work)
+        }
+    }
+
+    private func flushHeldTitle() {
+        titleFlushWork = nil
+        guard let title = titleReportThrottle.flush(at: Date()) else { return }
+        evaluateReportedTitle(title)
+    }
+
+    /// The unthrottled title path: the remote gate, or the local provenance
+    /// lookup feeding `receiveReportedTitle(_:programPID:)`.
+    private func evaluateReportedTitle(_ title: String) {
         if isRemote {
             receiveRemoteReportedTitle(title)
             return
         }
         receiveReportedTitle(title, programPID: ProcessInspector.foregroundProgramPID(forPane: self))
+    }
+
+    /// Drop a title held for a surface that is going away, and the flush
+    /// scheduled for it. The throttle forgets its window too, so the next
+    /// surface's first title is evaluated at once rather than held with no
+    /// flush coming.
+    private func cancelHeldTitle() {
+        titleFlushWork?.cancel()
+        titleFlushWork = nil
+        titleReportThrottle.reset()
     }
 
     /// Remote-pane title path (#104): there is no local foreground pid to
@@ -690,6 +779,7 @@ final class Pane: Identifiable {
             remoteZmxPath: remoteZmxPath
         )
         hasBuiltSurface = true
+        view.owningPane = self
         _nsView = view
         return view
     }
@@ -780,6 +870,7 @@ final class Pane: Identifiable {
         // analogue: a final bell-off transition). Before the guard, so a pane
         // torn down before its view ever existed still settles.
         acknowledgeBell()
+        cancelHeldTitle()
         guard let view = _nsView else { return }
         // Null callbacks before destroy so any in-flight ghostty events
         // triggered by destroySurface() itself can't re-enter.
@@ -811,6 +902,10 @@ final class Pane: Identifiable {
         // Release any secure-input scope this view holds (a pane closed
         // mid-password-prompt must not leave the OS state stuck on).
         view.passwordInput = false
+        view.detectedPasswordInput = false
+        // Drop any prompt, pending save or bubble this view anchors — a
+        // captured password must not outlive its pane.
+        PasswordPromptMonitor.shared.forget(view)
         // A notification whose pane no longer exists routes nowhere on tap, so
         // drop any still sitting in Notification Center. Ghostty does the same
         // when a surface is removed.
@@ -852,16 +947,8 @@ final class Pane: Identifiable {
     }
 
     /// What the tab/sidebar shows for this pane: a program-reported OSC title
-    /// when one is live (see `programTitle`), else the process name. With
-    /// auto-naming off, the static fallback only — the same name an idle
-    /// pane shows. This is display-only and the SINGLE gate: `processTitle`
-    /// stays live (the quit dialog must list real processes), and the
-    /// polling/probing behind `foregroundProcessName` keeps running for
-    /// busy-close verdicts and execution tracking.
+    /// when one is live (see `programTitle`), else the process name.
     var displayTitle: String {
-        guard Preferences.shared.autoNameTabs else {
-            return remoteHost ?? Self.defaultShellName
-        }
         if let title = programTitle, !title.isEmpty { return title }
         return processTitle
     }
@@ -894,8 +981,10 @@ final class Pane: Identifiable {
         command: String? = nil,
         shell: String? = nil,
         env: [String: String]? = nil,
-        activityQuietPollDelay: TimeInterval = TerminalActivityTiming.quietPollDelay
+        activityQuietPollDelay: TimeInterval = TerminalActivityTiming.quietPollDelay,
+        titleReportInterval: TimeInterval = PollCadence.fastInterval
     ) {
+        titleReportThrottle = TitleReportThrottle(interval: titleReportInterval)
         self.projectPath = projectPath
         self.projectID = projectID
         self.sessionID = sessionID

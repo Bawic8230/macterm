@@ -16,17 +16,24 @@ XCFRAMEWORK_DIR="GhosttyKit.xcframework"
 #
 # Set GHOSTTYKIT_TAG to another tag (or `latest`) to try one without committing:
 #   GHOSTTYKIT_TAG=latest mise run setup
-# build-2026-09-16: upstream 2026-09-16 + downstream patches 0001–0006 (0006
-# reports the custom-shader cursor hidden on frames that draw no cursor glyph,
-# and restores the flag on frames that do — the one-sided clear it shipped with
-# left the smooth cursor invisible at an idle prompt). Any
+# build-2026-09-26: upstream 2026-09-26 + downstream patches 0001–0006. Upstream
+# began its own smooth scrolling with RenderState overscan (ghostty-org/ghostty
+# #14400, #14404), and 0005 now captures the rows a shifted grid reveals through
+# it rather than through a row layout of its own (thdxg/ghostty#16); frames and
+# hit tests were A/B'd pixel-identical against build-2026-09-25. Upstream also
+# added GHOSTTY_ACTION_RESIZE_WINDOW (CSI 8 t, behind its off-by-default
+# `vt-window-resize-allowed`), which Macterm doesn't handle, so the key does
+# nothing here yet; the tag renumbers OUTPUT_ACTIVITY. Re-cut onto
+# thdxg/ghostty#17: the partly revealed scrollback row at the top of a shifted
+# grid (the old prompt line after a clear) is selectable instead of clamping a
+# press to the row below it. Any
 # same-day push to the fork's main — the nightly sync included — deletes and
 # recreates a daily tag with different bytes, the asset-swap-under-a-pin hazard
 # documented in AGENTS.md; the stamp below can't tell copies apart, so a
 # checkout holding a stale copy needs `rm -rf GhosttyKit.xcframework
 # Macterm/Resources/terminfo && mise run setup` once. CI's download cache
 # hashes this file, so a bump here also refreshes it.
-GHOSTTYKIT_TAG="${GHOSTTYKIT_TAG:-build-2026-09-22}"
+GHOSTTYKIT_TAG="${GHOSTTYKIT_TAG:-build-2026-09-30}"
 # The zmx release supplying the bundled session multiplexer. Pinned for the same
 # reason GhosttyKit is: thdxg/zmx publishes a build-YYYY-MM-DD release on every
 # push to its main, so tracking `latest` meant two builds of ONE Macterm commit
@@ -39,7 +46,10 @@ GHOSTTYKIT_TAG="${GHOSTTYKIT_TAG:-build-2026-09-22}"
 # APC to the user's shell as literal garbage instead of switching leader. That
 # is exactly what a stale CI cache did once — `Macterm/Resources/zmx` rides the
 # GhosttyKit cache, whose key hashes THIS file, so a zmx bump must change it.
-ZMX_TAG="${ZMX_TAG:-build-2026-09-22}"
+#
+# build-2026-09-26: upstream through #266 (a kitty keyboard status reply no
+# longer takes leadership) + downstream patches 0001–0004.
+ZMX_TAG="${ZMX_TAG:-build-2026-09-26}"
 # Which tag the on-disk fork artifacts actually came from. Without this the
 # presence checks below would keep a stale copy forever after a pin bump — the
 # same silent-staleness trap that makes symlinking these artifacts a bad idea.

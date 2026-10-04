@@ -18,6 +18,20 @@ font-size = 14
 
 With no existing config, Macterm uses `~/Library/Application Support/com.mitchellh.ghostty/config.ghostty`. If yours lives elsewhere, set the path in **Settings → General → Ghostty Config**. Run **Reload Ghostty Config** from the command palette to apply an edit without restarting.
 
+## Defaults that differ from Ghostty
+
+Macterm ships its own defaults for a few keys. They load before your config, so setting any of them yourself wins.
+
+| Key | Macterm default |
+| --- | --- |
+| `theme` | `"Rose Pine"` |
+| `font-size` | `16` |
+| `macos-option-as-alt` | `true` |
+| `window-padding-x`, `window-padding-y` | `16` |
+| `tab-inherit-working-directory` | `false` — new tabs start at the project root |
+
+The source of truth is `defaultsBody` in [`MactermConfig.swift`](https://github.com/thdxg/macterm/blob/main/Macterm/Config/MactermConfig.swift).
+
 ## Keys Macterm overrides
 
 Window chrome Macterm draws itself, so these are ignored or forced:
@@ -28,6 +42,7 @@ Window chrome Macterm draws itself, so these are ignored or forced:
 | `background-blur` | Settings → Appearance → Blur |
 | titlebar, window-decoration, split-divider, quick-terminal keys | Settings |
 | `bell-features = title`, `border` | not implemented |
+| `macos-non-native-fullscreen` | not implemented — full screen is always native |
 
 `background-opacity-cells` works as in Ghostty. Everything else — `bell-features = system`, `audio`, `attention` (which badges the Dock with the number of tabs waiting on you), `mouse-scroll-multiplier`, `custom-shader` — behaves as documented upstream.
 
@@ -64,7 +79,7 @@ Set a color from a project's sidebar context menu (**Color**) or **Settings → 
 
 | Toggle | Effect |
 | --- | --- |
-| **Smooth scrolling** | Trackpad scrolling and divider drags move by pixels instead of whole rows. Programs that draw their own screen still scroll by rows. |
+| **Smooth scrolling** | Trackpad scrolling and divider drags move by pixels instead of whole rows. Full-screen programs that scroll a region of the screen (`less`, for one) slide too; ones that redraw every row still move by rows. |
 | **Animate splits** | Panes slide in and out of the split layout. Off automatically under Reduce Motion. |
 | **Smooth cursor** | The cursor glides between positions. Sets `cursor-opacity = 0` while on. |
 | **Cursor trail** | A fading streak follows the cursor. Turn off any community trail shader, or you'll see two. |

@@ -242,6 +242,9 @@ extension AppCommand {
             return { ctx.appState.togglePreviewPanel() }
         case .newWindow:
             return { ctx.appState.requestNewWindow() }
+        case .newDesktopWidget:
+            // Locked, like every widget until it is edited.
+            return { ctx.appState.createDesktopWidget() }
         case .closeWindow:
             // The window the user is in, not a remembered pointer — with
             // several open, "close the window" can only mean the focused one.
@@ -259,6 +262,12 @@ extension AppCommand {
             }
         case .toggleQuickTerminal:
             return { QuickTerminalService.shared.toggle() }
+        case .autofillPassword:
+            // Only while the focused pane is at a prompt with a saved
+            // password; a nil action lets the chord reach the terminal and
+            // hides the palette row.
+            guard PasswordPromptMonitor.shared.canAutofillFocused else { return nil }
+            return { PasswordPromptMonitor.shared.autofillFocused() }
         case .checkForUpdate:
             // Always present in the palette; the guard only no-ops when a check
             // is already in flight (canCheckForUpdates flips false during one).

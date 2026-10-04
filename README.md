@@ -53,9 +53,13 @@
 - **Declarative layouts** \
   Describe a project's tabs, splits, and per-pane commands in YAML; Macterm builds the workspace from it on open.
 - **Control CLI** \
-  A bundled `macterm` command drives the running app, so scripts and AI agents can spawn panes, run commands, and script layouts.
+  A bundled `macterm` command drives the running app, so scripts and AI agents can spawn panes, run commands, and script layouts. `macterm skills` prints skills that teach a coding agent to use it.
 - **Quick terminal** \
   A global drop-down terminal on a hotkey (<kbd>⌃`</kbd>), for scratch work from anywhere.
+- **Desktop widgets** \
+  Put a terminal on your desktop beside the system's own widgets, on the same grid and in the same shape. Its shell keeps running through quits, and the widget comes back where you left it.
+- **Password autofill** \
+  When `ssh`, `sudo`, or any other program asks for a password, Macterm offers to save it to your keychain once it works, then fills it in after Touch ID or your login password the next time the same prompt appears.
 - **Adaptive background** \
   The window picks up the background color the running program paints. A full-screen TUI tints the whole window to match; in a split, each pane takes its own.
 - **Ghostty compatibility** \
@@ -91,11 +95,17 @@ font-family = JetBrains Mono
 font-size = 14
 ```
 
+Macterm's defaults differ from Ghostty's for a few keys (theme, font size, padding, `macos-option-as-alt`, and `tab-inherit-working-directory = false` so new tabs open at the project root). They are loaded before your config, so any key you set wins. The full list is `defaultsBody` in [`MactermConfig.swift`](https://github.com/thdxg/macterm/blob/main/Macterm/Config/MactermConfig.swift).
+
 Macterm's own settings — window opacity, sidebar behavior, quick-terminal size, keymaps — live in **Macterm → Settings**. See the [configuration docs](https://macterm.thdxg.dev/docs/configuration) for the full precedence order and the few chrome keys Macterm overrides.
 
 ## Cookbook
 
-Workflows and recipes from the community — the layouts, keybinds, and scripts people actually run to get more out of Macterm. Three to start with: [one <kbd>⌃hjkl</kbd> chord that moves between nvim's splits *and* Macterm's panes](https://github.com/thdxg/macterm/discussions/217), [driving an interactive program from a script](https://github.com/thdxg/macterm/discussions/218), and [giving a coding agent control of Macterm](https://github.com/thdxg/macterm/discussions/219).
+Workflows and recipes from the community — the layouts, keybinds, and scripts people actually run to get more out of Macterm. For example: 
+- [one <kbd>⌃hjkl</kbd> chord that moves between nvim's splits *and* Macterm's panes](https://github.com/thdxg/macterm/discussions/217)
+- [driving an interactive program from a script](https://github.com/thdxg/macterm/discussions/218)
+- [giving a coding agent control of Macterm](https://github.com/thdxg/macterm/discussions/219)
+- [Neovim plugin for moving focus between Neovim splits and MacTerm panes with the same directional keybindings](https://github.com/thdxg/macterm/discussions/459)
 
 Got a recipe of your own? [Start a Cookbook topic](https://github.com/thdxg/macterm/discussions/new?category=cookbook) — anyone can post, and anyone can borrow.
 

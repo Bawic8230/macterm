@@ -24,7 +24,30 @@ enum Output {
         if let inspect = data.inspect { renderInspect(inspect) }
         if let dump = data.dump { renderDump(dump) }
         if let tutorial = data.tutorial { print(tutorial.text) }
+        if let password = data.password { renderPassword(password) }
+        if let widgets = data.widgets { renderWidgets(widgets) }
         if let preview = data.preview { renderPreview(preview) }
+    }
+
+    private static func renderPassword(_ state: ControlPasswordState) {
+        var line = "phase=\(state.phase) saved=\(state.saved) bubble=\(state.bubble ?? "none")"
+        if let prompt = state.prompt { line += " prompt=\(prompt)" }
+        if let command = state.command { line += " command=\(command)" }
+        print(line)
+    }
+
+    private static func renderWidgets(_ widgets: [ControlWidgetInfo]) {
+        let rows = widgets.map { widget -> [String] in
+            [
+                "widget:\(widget.index)",
+                widget.name ?? "-",
+                widget.size,
+                widget.editing ? "editing" : "locked",
+                widget.session,
+                widget.command ?? "-",
+            ]
+        }
+        printColumns(rows)
     }
 
     private static func renderPreview(_ preview: ControlPreviewInfo) {
@@ -43,10 +66,14 @@ enum Output {
     }
 
     private static func renderProjects(_ projects: [ControlProjectInfo]) {
-        let rows = projects.enumerated().map { index, project -> [String] in
+        let rows = projects.map { project -> [String] in
             let tabs = project.tabCount.map { "\($0) tab\($0 == 1 ? "" : "s")" } ?? "—"
             return [
-                "project:\(index + 1)",
+                // Never the row's offset in this reply, which is `project:1`
+                // for every single-project reply. A row without an index (the
+                // pinned workspace, or an older app) prints its id, which
+                // `--project` resolves just the same.
+                project.index.map { "project:\($0)" } ?? project.id,
                 project.active ? "*" : " ",
                 project.name,
                 project.loaded ? tabs : "not loaded",
