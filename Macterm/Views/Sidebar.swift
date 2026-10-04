@@ -798,6 +798,20 @@ struct SidebarContent: View {
         }
     }
 
+    /// Switch the tab's Claude Code session to another model (`/model <id>`).
+    /// Shown only while a pane in the tab is running Claude, so the command
+    /// never lands in a plain shell.
+    @ViewBuilder
+    private func claudeModelMenu(for tab: TerminalTab) -> some View {
+        if appState.claudePane(in: tab) != nil {
+            Menu("Claude Model") {
+                ForEach(ClaudeModelChoice.all) { model in
+                    Button(model.title) { appState.switchClaudeModel(model, in: tab) }
+                }
+            }
+        }
+    }
+
     /// The project's other git worktrees, each opening a tab of this project
     /// in its directory. The listing is read from git's files as the menu is
     /// built — the list's context-menu closure runs when the menu opens, not
@@ -902,6 +916,7 @@ struct SidebarContent: View {
     @ViewBuilder
     private func tabMenu(project: Project, tab: TerminalTab) -> some View {
         Button("Rename Tab") { requestTabRename(tab.id) }
+        claudeModelMenu(for: tab)
         if tab.splitRoot.allPanes().count > 1 {
             // #227: explode a split tab — every pane after the first opens in
             // its own tab, shells intact.
