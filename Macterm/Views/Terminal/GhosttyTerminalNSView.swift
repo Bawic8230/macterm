@@ -1288,25 +1288,6 @@ final class GhosttyTerminalNSView: NSView {
         {
             onCommandSubmitted?(consumeCommandSubmissionEvidence())
         }
-
-        if TerminalCommandSubmission.endsDictation(
-            keyCode: event.keyCode,
-            isRepeat: event.isARepeat,
-            hasUserModifiers: !flags.isDisjoint(with: userModifiers)
-        ) {
-            stopSystemDictation()
-        }
-    }
-
-    /// A plain Return ends macOS Dictation (F5 / fn), which otherwise keeps
-    /// listening after its text is committed. Deferred one turn so the commit
-    /// done by `interpretKeyEvents` lands first. `stopDictation:` is the
-    /// NSApplication action behind Edit ▸ Stop Dictation and does nothing when
-    /// dictation is not running.
-    private func stopSystemDictation() {
-        let stop = NSSelectorFromString("stopDictation:")
-        guard NSApp.responds(to: stop) else { return }
-        DispatchQueue.main.async { NSApp.sendAction(stop, to: NSApp, from: nil) }
     }
 
     override func doCommand(by selector: Selector) {}
