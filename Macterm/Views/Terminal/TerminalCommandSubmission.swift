@@ -72,6 +72,14 @@ enum TerminalCommandSubmission {
         returnKeyCodes.contains(keyCode) && !isRepeat && !hasMarkedText && !hasUserModifiers
     }
 
+    /// Return that should also end macOS Dictation. Unlike `isReturn`, marked
+    /// text does not matter: the Return that commits dictated (marked) text is
+    /// exactly the one that should stop it. Modified Returns (⇧↩ newline etc.)
+    /// leave dictation running.
+    static func endsDictation(keyCode: UInt16, isRepeat: Bool, hasUserModifiers: Bool) -> Bool {
+        returnKeyCodes.contains(keyCode) && !isRepeat && !hasUserModifiers
+    }
+
     static func textContainsNewline(_ text: String) -> Bool {
         text.contains("\n") || text.contains("\r")
     }
