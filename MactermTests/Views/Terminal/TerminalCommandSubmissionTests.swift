@@ -158,4 +158,16 @@ struct TerminalCommandSubmissionTests {
         #expect(!TerminalCommandSubmission.shouldRecordLiteralText(hasOption: true))
         #expect(TerminalCommandSubmission.shouldRecordLiteralText(hasOption: false))
     }
+
+    @Test
+    func plainReturnEndsDictationEvenWhileCommittingMarkedText() {
+        // Return and keypad Enter; marked text is not a parameter, because the
+        // Return that commits dictated text is the one that should stop it.
+        #expect(TerminalCommandSubmission.endsDictation(keyCode: 36, isRepeat: false, hasUserModifiers: false))
+        #expect(TerminalCommandSubmission.endsDictation(keyCode: 76, isRepeat: false, hasUserModifiers: false))
+        // ⇧↩ and friends, auto-repeat and other keys leave it running.
+        #expect(!TerminalCommandSubmission.endsDictation(keyCode: 36, isRepeat: false, hasUserModifiers: true))
+        #expect(!TerminalCommandSubmission.endsDictation(keyCode: 36, isRepeat: true, hasUserModifiers: false))
+        #expect(!TerminalCommandSubmission.endsDictation(keyCode: 49, isRepeat: false, hasUserModifiers: false))
+    }
 }

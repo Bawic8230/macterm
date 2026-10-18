@@ -1042,6 +1042,7 @@ final class GhosttyTerminalNSView: NSView {
 
     override func becomeFirstResponder() -> Bool {
         let result = super.becomeFirstResponder()
+        SystemDictation.startObserving()
         if result, let surface {
             ghostty_surface_set_focus(surface, true)
             onFocus?()
@@ -1287,6 +1288,14 @@ final class GhosttyTerminalNSView: NSView {
            )
         {
             onCommandSubmitted?(consumeCommandSubmissionEvidence())
+        }
+
+        if TerminalCommandSubmission.endsDictation(
+            keyCode: event.keyCode,
+            isRepeat: event.isARepeat,
+            hasUserModifiers: !flags.isDisjoint(with: userModifiers)
+        ) {
+            SystemDictation.stop(in: inputContext)
         }
     }
 
