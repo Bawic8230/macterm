@@ -458,8 +458,7 @@ struct SidebarContent: View {
                     presentation: presentation,
                     isInteractive: isInteractive,
                     onRename: { newName in
-                        tab.customTitle = newName.isEmpty ? nil : newName
-                        appState.saveWorkspaces()
+                        appState.renameTab(tab, to: newName)
                     }
                 )
             } else {
@@ -561,8 +560,7 @@ struct SidebarContent: View {
             isUnloaded: appState.isProjectUnloaded(project.id),
             projectColor: project.color,
             onRename: { newName in
-                tab.customTitle = newName.isEmpty ? nil : newName
-                appState.saveWorkspaces()
+                appState.renameTab(tab, to: newName)
             }
         )
         .padding(.trailing, rowTrailingInset)
@@ -1489,10 +1487,15 @@ private struct SidebarTabRow: View {
 
     private func beginRename() {
         guard isInteractive else { return }
+        // A Claude tab is named after its session, so the field starts on
+        // that name and an unedited commit renames nothing.
+        let current = tab.customTitle == nil && appState.claudePane(in: tab) != nil
+            ? tab.sidebarTitle
+            : tab.customTitle
         presentation.beginRename(
             renameTarget,
-            text: tab.customTitle ?? "",
-            originalCustomTitle: tab.customTitle
+            text: current ?? "",
+            originalCustomTitle: current
         )
         appState.renamingTabID = nil
     }

@@ -3627,8 +3627,7 @@ final class AppState {
     func setTabTitle(containing paneID: UUID, projectID: UUID, title: String?) {
         guard let tab = workspaces[projectID]?.tabs.first(where: { $0.splitRoot.contains(paneID: paneID) })
         else { return }
-        tab.customTitle = title
-        saveWorkspaces()
+        renameTab(tab, to: title)
     }
 
     func navigateToPane(_ paneID: UUID, projectID: UUID) {

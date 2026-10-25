@@ -765,8 +765,7 @@ final class ControlHandler {
         let (_, workspace) = try resolveWorkspace(args)
         let (index, tab) = try resolveTab(args, in: workspace)
 
-        tab.customTitle = newTitle
-        appState.saveWorkspaces()
+        appState.renameTab(tab, to: newTitle)
 
         return ControlData(tabs: [tabInfo(tab, index: index, in: workspace)])
     }

@@ -947,9 +947,12 @@ final class Pane: Identifiable {
     }
 
     /// What the tab/sidebar shows for this pane: a program-reported OSC title
-    /// when one is live (see `programTitle`), else the process name.
+    /// when one is live (see `programTitle`), else the process name. Claude
+    /// Code's title shows as the bare session name (`ClaudeSessionName`).
     var displayTitle: String {
-        if let title = programTitle, !title.isEmpty { return title }
+        if let title = programTitle, !title.isEmpty {
+            return agentIcon == .claude ? ClaudeSessionName.strippingStatusGlyph(title) : title
+        }
         return processTitle
     }
 
