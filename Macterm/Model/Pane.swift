@@ -1,5 +1,8 @@
 import CoreGraphics
 import Foundation
+import os
+
+private let claudeActivityLogger = Logger(subsystem: appBundleID, category: "ClaudeActivity")
 
 /// A pane is the leaf of the split tree — one terminal surface.
 @MainActor @Observable
@@ -106,7 +109,41 @@ final class Pane: Identifiable {
     /// and it's pinned to that pid — `applyForegroundRefresh` expires it the
     /// moment a different process (usually the shell, on exit) takes the
     /// foreground, so an idle pane falls back to the process name.
-    private(set) var programTitle: String?
+    private(set) var programTitle: String? {
+        didSet { noteClaudeActivity() }
+    }
+
+    /// Claude Code finished a turn (its title went from a spinner frame back
+    /// to `✳`) and the user hasn't looked at the pane since. Cleared by every
+    /// "the user is looking" path, the same ones that clear the `.done` dot
+    /// (`acknowledgeCommandCompletion`). Independent of the status-indicator
+    /// preference and of `executionState`: Claude's own title glyph says when
+    /// it is working, so no output heuristics are involved.
+    private(set) var hasUnreadClaudeReply = false
+
+    /// Whether Claude Code in this pane is working, per its title glyph.
+    var isClaudeWorking: Bool {
+        guard agentIcon == .claude, let programTitle else { return false }
+        return ClaudeSessionName.isWorkingTitle(programTitle)
+    }
+
+    @ObservationIgnored
+    private var wasClaudeWorking = false
+
+    /// The working→idle edge of `isClaudeWorking` marks a reply as unread.
+    /// A title that goes away (Claude exited) is not a reply.
+    private func noteClaudeActivity() {
+        let working = isClaudeWorking
+        guard working != wasClaudeWorking else { return }
+        wasClaudeWorking = working
+        claudeActivityLogger.info("pane \(self.id.uuidString, privacy: .public) \(working ? "working" : "idle", privacy: .public)")
+        if !working, agentIcon == .claude, programTitle != nil {
+            hasUnreadClaudeReply = true
+            // Wake the poll so a pane the user is looking at is acknowledged
+            // at once instead of flashing the dot until the next tick.
+            NotificationCenter.default.post(name: .terminalPollEvent, object: nil)
+        }
+    }
 
     /// The foreground pid that set `programTitle`, used to expire it.
     @ObservationIgnored
@@ -502,6 +539,8 @@ final class Pane: Identifiable {
 
     @discardableResult
     func acknowledgeCommandCompletion() -> Bool {
+        // Transient like the bell: it never feeds the save decision.
+        if hasUnreadClaudeReply { hasUnreadClaudeReply = false }
         guard executionState == .done else { return false }
         executionState = .idle
         return true

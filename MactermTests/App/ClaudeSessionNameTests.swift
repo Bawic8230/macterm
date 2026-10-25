@@ -20,6 +20,17 @@ struct ClaudeSessionNameTests {
     }
 
     @Test
+    func spinner_frames_are_working_and_the_idle_glyph_is_not() {
+        #expect(ClaudeSessionName.isWorkingTitle("⠂ build"))
+        #expect(ClaudeSessionName.isWorkingTitle("✶ build"))
+        #expect(!ClaudeSessionName.isWorkingTitle("✳ build"))
+        #expect(!ClaudeSessionName.isWorkingTitle("Claude Code"))
+        #expect(!ClaudeSessionName.isWorkingTitle("*nix tips"))
+        #expect(!ClaudeSessionName.isWorkingTitle("⠂"))
+        #expect(!ClaudeSessionName.isWorkingTitle(""))
+    }
+
+    @Test
     func rename_command_types_the_name_verbatim() {
         #expect(ClaudeSessionName.renameCommand("屋根裏部屋") == "/rename 屋根裏部屋")
     }

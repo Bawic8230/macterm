@@ -22,6 +22,15 @@ enum ClaudeSessionName {
         return name.isEmpty ? title : String(name)
     }
 
+    /// Whether `title` says Claude Code is working: it starts with a status
+    /// glyph other than the idle `✳` (a spinner frame).
+    static func isWorkingTitle(_ title: String) -> Bool {
+        guard let first = title.first, first != idleGlyph, isStatusGlyph(first) else { return false }
+        return title.dropFirst().first == " "
+    }
+
+    private static let idleGlyph: Character = "✳"
+
     /// What gets typed into the session (without the submitting Return).
     static func renameCommand(_ name: String) -> String {
         "/rename \(name)"

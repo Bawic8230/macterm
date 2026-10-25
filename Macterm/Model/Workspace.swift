@@ -101,6 +101,16 @@ final class TerminalTab: Identifiable {
         return didAcknowledge
     }
 
+    /// Whether Claude Code is working in any pane of this tab.
+    var isClaudeWorking: Bool {
+        splitRoot.allPanes().contains(where: \.isClaudeWorking)
+    }
+
+    /// Whether a pane of this tab has a Claude reply the user hasn't seen.
+    var hasUnreadClaudeReply: Bool {
+        splitRoot.allPanes().contains(where: \.hasUnreadClaudeReply)
+    }
+
     /// Whether any pane of this tab rang BEL and hasn't been looked at since.
     /// The tab is the unit the Dock badge counts (`BellBadge.tabCount`).
     var hasUnacknowledgedBell: Bool {

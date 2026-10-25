@@ -1417,8 +1417,11 @@ private struct SidebarTabRow: View {
                 .onExitCommand { cancelRename() }
                 .onAppear { focused = true }
         } else {
-            TabRowTitle(tab: tab)
-                .inlineRenameClickTarget(onSelect: select, onBeginRename: beginRename)
+            HStack(spacing: 6) {
+                TabRowTitle(tab: tab)
+                if !isUnloaded { ClaudeActivityBadge(tab: tab) }
+            }
+            .inlineRenameClickTarget(onSelect: select, onBeginRename: beginRename)
         }
     }
 
@@ -1599,6 +1602,26 @@ private struct UnloadedRowStyle: ViewModifier {
                 .help("Not running — select to load the project again")
         } else {
             content
+        }
+    }
+}
+
+/// Right of a Claude tab's title: a spinner while Claude works, a dot when it
+/// has replied and the tab hasn't been looked at since.
+private struct ClaudeActivityBadge: View {
+    let tab: TerminalTab
+
+    var body: some View {
+        if tab.isClaudeWorking {
+            ProgressView()
+                .controlSize(.mini)
+                .tint(.secondary)
+                .help("作業中 / Working")
+        } else if tab.hasUnreadClaudeReply {
+            Circle()
+                .fill(MactermTheme.accent)
+                .frame(width: 7, height: 7)
+                .help("未読の返答 / Unread reply")
         }
     }
 }
